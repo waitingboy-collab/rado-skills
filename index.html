@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rado skills | Радослав Чакъров</title>
+<meta name="description" content="Радослав Чакъров — разработчик и QA инженер от Крумовград. Изгражда решения с изкуствен интелект и проверява всичко, което AI пише.">
+<meta property="og:title" content="Rado skills">
+<meta property="og:description" content="Човек + AI: разработка и QA от Радослав Чакъров.">
+<meta name="theme-color" content="#F3F5F4">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23F3F5F4'/%3E%3Cpath d='M7 20 C 12 17, 18 18, 25 12' stroke='%23C8232C' stroke-width='3.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js')</script>
+<style>
+/* =========================================================
+   ДИЗАЙН СИСТЕМА
+   Хартия за чертеж + два гласа:
+   • синьо-сив моноширинен = AI (черновата)
+   • червен ръкопис        = човекът (корекцията)
+   ========================================================= */
+:root{
+  --paper:#F3F5F4;
+  --sheet:#FFFFFF;
+  --ink:#14171C;
+  --muted:#5A636F;
+  --machine:#44587A;
+  --machine-soft:#E8EDF3;
+  --pen:#C8232C;
+  --marker:#FFE15C;
+  --rule:#D2D9DF;
+  --grid:rgba(68,88,122,.07);
+  --f-sans:"Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --f-hand:"Caveat", "Segoe Print", "Bradley Hand", cursive;
+  --wrap:1240px;
+  --gut:clamp(20px,4vw,48px);
+  --shadow-sheet:0 1px 1px rgba(20,23,28,.04),0 2px 4px rgba(20,23,28,.04),0 12px 28px -8px rgba(40,56,84,.16);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0;color:var(--ink);font-family:var(--f-sans);font-size:1.0625rem;line-height:1.6;
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px),
+    linear-gradient(rgba(68,88,122,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(68,88,122,.035) 1px,transparent 1px);
+  background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+/* фина хартиена текстура */
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:.22;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .33 0 0 0 0 .38 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection{background:var(--marker);color:var(--ink)}
+
+/* двуезичност */
+html[lang="bg"] [lang="en"], html[lang="en"] [lang="bg"]{display:none !important}
+
+a{color:inherit}
+:focus-visible{outline:3px solid var(--pen);outline-offset:3px;border-radius:4px}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 var(--gut)}
+.skip{position:absolute;left:-999px;top:8px;background:var(--ink);color:#fff;padding:8px 12px;z-index:200}
+.skip:focus{left:8px}
+
+/* гласове */
+.ai{font-family:var(--f-mono);color:var(--machine)}
+.hand{font-family:var(--f-hand);color:var(--pen);font-weight:700;line-height:1.08}
+.hl{background:linear-gradient(100deg,transparent .3em,var(--marker) .3em,var(--marker) calc(100% - .2em),transparent calc(100% - .2em)) 0 72%/100% .62em no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .12em}
+
+/* червен химикал изключен => остава само машината */
+body.pen-off .pen{display:none !important}
+body.pen-off .hl{background:none}
+body.pen-off .del{opacity:1 !important}
+
+/* ръчно рисувани задрасквания (SVG от JS) */
+.strike-host{position:relative}
+.strike-svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.strike-svg path{fill:none;stroke:var(--pen);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .55s cubic-bezier(.65,0,.35,1)}
+.drawn .strike-svg path{stroke-dashoffset:0}
+.del{transition:opacity .4s .3s}
+.drawn .del{opacity:.5}
+.hero .strike-svg path{stroke-width:3.4}
+
+/* ръкописът „се изписва“ */
+.js .write{clip-path:inset(-20% 100% -20% 0);transition:clip-path 1s cubic-bezier(.6,.05,.3,1) .45s}
+.js .drawn .write, .js .written .write{clip-path:inset(-20% -5% -20% 0)}
+
+/* прогрес като червена линия в полето */
+.progress{position:fixed;left:0;top:0;width:3px;height:100vh;background:var(--pen);transform-origin:top;transform:scaleY(0);z-index:60}
+
+/* ===================== ГОРНА ЛЕНТА ===================== */
+.bar{position:sticky;top:0;z-index:50;background:rgba(243,245,244,.86);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--rule)}
+.bar .wrap{display:flex;align-items:center;gap:28px;min-height:64px}
+.mono-mark{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:700;letter-spacing:-.01em}
+.mono-mark i{display:grid;place-items:center;width:34px;height:34px;border:2px solid var(--ink);border-radius:50%;font-style:normal;font-size:.8rem;font-weight:800;letter-spacing:-.02em}
+.nav{display:flex;gap:22px;margin-left:auto}
+.nav a{text-decoration:none;font-size:.95rem;color:var(--muted);font-weight:500;position:relative}
+.nav a:hover{color:var(--ink)}
+.controls{display:flex;align-items:center;gap:14px}
+.pen-switch{display:flex;align-items:center;gap:10px;background:none;border:0;padding:6px 2px;font:inherit;font-size:.92rem;font-weight:500;color:var(--ink);cursor:pointer}
+.pen-switch .track{width:44px;height:26px;border-radius:13px;background:#C9D1D8;position:relative;transition:background .25s}
+.pen-switch .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .25s cubic-bezier(.5,1.6,.4,1)}
+.pen-switch[aria-checked="true"] .track{background:var(--pen)}
+.pen-switch[aria-checked="true"] .knob{transform:translateX(18px)}
+.lang{display:flex;border:1.5px solid var(--ink);border-radius:999px;padding:2px}
+.lang button{font:inherit;font-size:.8rem;font-weight:700;background:transparent;border:0;padding:4px 10px;border-radius:999px;cursor:pointer;color:var(--muted)}
+.lang button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+/* ===================== HERO ===================== */
+.hero{padding:clamp(56px,9vw,120px) 0 clamp(40px,6vw,72px)}
+.hero-top{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:40px;align-items:start}
+.draft{margin:0;font-size:clamp(1.55rem,4vw,3.15rem);line-height:1.38;letter-spacing:-.025em;max-width:22ch}
+.draft .ai{font-weight:400}
+.caret-blink{display:inline-block;width:.5em;height:1em;background:var(--machine);vertical-align:-.12em;margin-left:3px;animation:blink 1s steps(1) infinite}
+.typed .caret-blink{display:none}
+@keyframes blink{50%{opacity:0}}
+.insert{display:flex;align-items:flex-start;gap:.15em;margin:.1em 0 0 1.2em;font-size:clamp(2.6rem,7.4vw,5.9rem);transform:rotate(-2.2deg);transform-origin:left}
+.insert svg{width:.5em;height:.6em;flex:none;margin-top:-.05em;overflow:visible}
+.insert svg path{fill:none;stroke:var(--pen);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.margin-note{position:relative;padding-top:10px;font-size:1.55rem;transform:rotate(3deg)}
+.margin-note svg{display:block;width:70px;height:46px;margin:0 0 4px auto;overflow:visible}
+.margin-note svg path{fill:none;stroke:var(--pen);stroke-width:2.2;stroke-linecap:round}
+
+.ident{margin-top:clamp(48px,7vw,96px);display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:24px 56px;align-items:end;border-top:2px solid var(--ink);padding-top:clamp(20px,3vw,32px)}
+.ident h1{margin:0;font-weight:800;font-size:clamp(3.4rem,10.8vw,8.6rem);line-height:.86;letter-spacing:-.055em}
+.ident h1 span{display:block}
+.ident h1 span + span{padding-left:.42em}
+.role{margin:0 0 22px;font-size:clamp(1.05rem,1.5vw,1.2rem);line-height:1.55;max-width:38ch}
+.role strong{font-weight:600}
+.actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-weight:600;padding:14px 22px;border-radius:999px;border:2px solid var(--ink);transition:transform .15s,background .15s}
+.btn.primary{background:var(--ink);color:#fff}
+.btn:hover{transform:translateY(-2px)}
+.btn.primary:hover{background:#000}
+.btn:not(.primary):hover{background:var(--sheet)}
+.btn svg{width:18px;height:18px}
+
+/* ===================== СЕКЦИИ ===================== */
+.section{padding:clamp(72px,10vw,140px) 0}
+.head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.7fr);gap:24px 64px;align-items:end;margin-bottom:clamp(40px,5vw,64px)}
+.head h2{margin:0;font-weight:800;font-size:clamp(2.1rem,5.2vw,4.1rem);line-height:.98;letter-spacing:-.04em;max-width:16ch}
+.head p{margin:0;color:var(--muted);font-size:1.08rem;max-width:44ch}
+
+/* --- Метод: истинска последователност от 3 стъпки --- */
+.pipeline{display:grid;grid-template-columns:1fr 64px 1fr 64px 1fr;align-items:stretch}
+.stage{background:var(--sheet);border-radius:16px;padding:30px 28px 32px;box-shadow:var(--shadow-sheet);position:relative}
+.stage .n{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;border:2px solid currentColor;font-weight:800;font-size:.9rem;font-family:var(--f-sans);margin-bottom:22px}
+.stage h3{margin:0 0 10px;line-height:1.1}
+.stage p{margin:0;color:var(--muted)}
+.st-ai{color:var(--machine)} .st-ai h3{font-family:var(--f-mono);font-weight:500;font-size:1.35rem;letter-spacing:-.02em}
+.st-me{color:var(--pen);transform:rotate(-.6deg)} .st-me h3{font-family:var(--f-hand);font-size:2.3rem;font-weight:700}
+.st-test{color:var(--ink);background:var(--ink)} .st-test h3{font-size:1.5rem;font-weight:800;letter-spacing:-.03em;color:#fff} .st-test p{color:#B9C1CB} .st-test .n{color:#fff}
+.link-arrow{display:grid;place-items:center}
+.link-arrow svg{width:56px;height:30px;overflow:visible}
+.link-arrow path{fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* --- Корекциите --- */
+.cases{display:flex;flex-direction:column;gap:clamp(48px,6vw,88px)}
+.case{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px 72px;align-items:start}
+.case-title{grid-column:1 / -1;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:14px}
+.case-title h3{margin:0;font-size:clamp(1.4rem,2.6vw,1.9rem);letter-spacing:-.03em;font-weight:800}
+.case-title span{color:var(--muted);font-size:.98rem}
+.sheet{background:var(--sheet);border-radius:4px 14px 14px 14px;box-shadow:var(--shadow-sheet);padding:22px 26px 26px;position:relative}
+.sheet-head{display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:.78rem;color:var(--machine);opacity:.85;margin-bottom:14px}
+.sheet-head i{width:8px;height:8px;border-radius:50%;background:#9FB0C8}
+.sheet .ai{margin:0;font-size:clamp(1rem,1.5vw,1.14rem);line-height:1.75}
+.case:nth-child(odd) .sheet{transform:rotate(-.5deg)}
+.case:nth-child(even) .sheet{transform:rotate(.45deg)}
+.verdict{position:relative;padding-top:4px}
+.verdict .hand{display:block;font-size:clamp(1.9rem,3vw,2.5rem);transform:rotate(-1.5deg);transform-origin:left;margin-bottom:16px}
+.verdict .arrow{position:absolute;left:-66px;top:10px;width:58px;height:44px;overflow:visible}
+.verdict .arrow path{fill:none;stroke:var(--pen);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.verdict .result{margin:0;font-size:1.06rem;line-height:1.65;max-width:42ch}
+.case:nth-child(even) .verdict .hand{transform:rotate(1deg)}
+
+/* --- Проекти --- */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
+.chip{font:inherit;font-size:.92rem;font-weight:600;background:transparent;border:1.5px solid var(--rule);color:var(--ink);padding:8px 16px;border-radius:999px;cursor:pointer;transition:border-color .15s,background .15s}
+.chip:hover{border-color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip b{font-weight:500;opacity:.6;margin-left:4px}
+.index{list-style:none;margin:0;padding:0;border-top:2px solid var(--ink)}
+.p{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.6fr) minmax(0,1fr) 120px;gap:8px 32px;padding:24px 12px;border-bottom:1px solid var(--rule);align-items:baseline;transition:background .15s;border-radius:2px}
+.p:hover{background:rgba(255,255,255,.75)}
+.p h3{margin:0;font-size:1.22rem;letter-spacing:-.02em;font-weight:700;line-height:1.25}
+.p .cat{display:block;font-size:.85rem;font-weight:500;color:var(--muted);margin-top:4px;letter-spacing:0}
+.p .desc{margin:0;line-height:1.55}
+.p .tech{margin:0;font-family:var(--f-mono);font-size:.8rem;line-height:1.6;color:var(--machine)}
+.p .go{justify-self:end;font-size:.92rem;font-weight:600;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;padding-bottom:2px;background:linear-gradient(var(--pen),var(--pen)) 0 100%/0 2px no-repeat;transition:background-size .25s}
+.p .go:hover{background-size:100% 2px}
+.p .go svg{width:14px;height:14px}
+.p .badge{justify-self:end;font-size:.8rem;font-weight:600;color:var(--muted);border:1.5px dashed var(--rule);padding:2px 10px;border-radius:999px}
+.p[hidden]{display:none}
+
+/* --- Преди кода: технически чертежи --- */
+.drawings{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.dw{background:var(--sheet);border-radius:14px;box-shadow:var(--shadow-sheet);overflow:hidden;display:flex;flex-direction:column}
+.dw figure{margin:0;border-bottom:1px solid var(--rule);background:
+  linear-gradient(rgba(68,88,122,.06) 1px,transparent 1px) 0 0/16px 16px,
+  linear-gradient(90deg,rgba(68,88,122,.06) 1px,transparent 1px) 0 0/16px 16px,#FBFCFC}
+.dw svg{display:block;width:100%;height:auto}
+.dw .body{padding:24px 26px 28px}
+.dw h3{margin:0;font-size:1.3rem;letter-spacing:-.02em;font-weight:800}
+.dw .where{margin:2px 0 14px;color:var(--muted);font-size:.92rem}
+.dw .lesson{margin:0 0 14px}
+.dw .hand{font-size:1.7rem;margin:0}
+.bp{fill:none;stroke:var(--machine);stroke-width:1.4}
+.bp-thin{fill:none;stroke:var(--machine);stroke-width:.9}
+.bp-center{fill:none;stroke:var(--machine);stroke-width:.8;stroke-dasharray:14 4 2 4}
+.bp-hidden{fill:none;stroke:var(--machine);stroke-width:1;stroke-dasharray:5 4}
+.bp-text{font-family:var(--f-mono);font-size:11px;fill:var(--machine)}
+.bp-hatch{fill:url(#hatch)}
+.red{fill:none;stroke:var(--pen);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.red-text{font-family:var(--f-hand);font-weight:700;font-size:20px;fill:var(--pen)}
+
+/* --- Спецификация (BOM) --- */
+.bom-wrap{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:48px;align-items:start}
+.bom{width:100%;border-collapse:collapse;background:var(--sheet);border:2px solid var(--ink);font-size:1rem}
+.bom th,.bom td{border:1px solid var(--rule);padding:12px 16px;text-align:left;vertical-align:top}
+.bom thead th{border-bottom:2px solid var(--ink);font-size:.85rem;font-weight:600;color:var(--muted);background:#FAFBFB}
+.bom td:first-child,.bom th:first-child{width:56px;text-align:center;font-family:var(--f-mono);color:var(--machine);font-size:.88rem}
+.bom td:nth-child(2){font-weight:700;white-space:nowrap}
+.bom td:nth-child(3){color:var(--muted)}
+.stamps{display:flex;flex-direction:column;gap:26px;padding-top:6px}
+.stamp{align-self:flex-start;border:3px double currentColor;border-radius:10px;padding:12px 18px 14px;line-height:1.25;font-weight:700;opacity:.92}
+.stamp small{display:block;font-weight:500;font-size:.85rem;margin-top:4px;opacity:.85}
+.stamp big{display:block;font-size:1.6rem;letter-spacing:-.02em}
+.stamp.s1{color:var(--pen);transform:rotate(-4deg)}
+.stamp.s2{color:var(--machine);transform:rotate(2.5deg);margin-left:40px}
+.stamp.s3{color:var(--ink);transform:rotate(-1.5deg);border-style:dashed;border-width:2px}
+
+/* --- Заглавна щампа на чертежа (контакт) --- */
+.closing{padding:clamp(72px,10vw,140px) 0 48px}
+.closing h2{margin:0 0 .5em;font-weight:800;font-size:clamp(2.2rem,6vw,5rem);line-height:.98;letter-spacing:-.045em;max-width:15ch}
+.closing .lead{margin:0 0 40px;font-size:1.15rem;max-width:52ch;color:var(--muted)}
+.titleblock{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:2.5px solid var(--ink);background:var(--sheet)}
+.tb{border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:12px 16px 14px;min-height:86px;display:flex;flex-direction:column;justify-content:space-between;text-decoration:none;color:inherit}
+.tb small{font-size:.78rem;color:var(--muted);font-weight:500}
+.tb strong{font-size:1.08rem;font-weight:700;letter-spacing:-.01em;word-break:break-word}
+a.tb{transition:background .15s}
+a.tb:hover{background:var(--machine-soft)}
+a.tb:hover strong{color:var(--pen)}
+.tb.w2{grid-column:span 2}
+.tb.w3{grid-column:span 3}
+.tb.r{border-right:0}
+.tb.last{border-bottom:0}
+.tb .sig{font-family:var(--f-hand);color:var(--pen);font-size:2.1rem;font-weight:700;line-height:.9;transform:rotate(-4deg);transform-origin:left}
+.tb.wa{flex-direction:row;align-items:center;justify-content:flex-start;gap:16px}
+.tb.wa .qr{width:104px;height:104px;flex:none;border:1px solid var(--rule)}
+.wa-txt{display:flex;flex-direction:column;gap:4px}
+.wa-txt em{font-style:normal;font-size:.85rem;color:var(--muted)}
+footer{padding:28px 0 56px;color:var(--muted);font-size:.9rem}
+
+/* ===================== АДАПТИВНОСТ ===================== */
+@media (max-width:1080px){
+  .nav{display:none}
+  .controls{margin-left:auto}
+  .p{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) 110px}
+  .p .tech{grid-column:2}
+  .p .go,.p .badge{grid-row:1;grid-column:3}
+}
+@media (max-width:900px){
+  .hero-top{grid-template-columns:1fr}
+  .margin-note{font-size:1.3rem;max-width:230px;margin:18px 0 0 auto;text-align:right;transform:rotate(2deg)}
+  .margin-note svg{width:52px;height:34px}
+  .ident{grid-template-columns:1fr}
+  .head{grid-template-columns:1fr}
+  .pipeline{grid-template-columns:1fr}
+  .link-arrow{height:44px}
+  .link-arrow svg{transform:rotate(90deg)}
+  .case{grid-template-columns:1fr;gap:24px}
+  .verdict .arrow{left:auto;right:6px;top:-30px;transform:rotate(100deg) scale(.8)}
+  .drawings{grid-template-columns:1fr;max-width:560px}
+  .bom-wrap{grid-template-columns:1fr}
+  .stamps{flex-direction:row;flex-wrap:wrap}
+  .stamp.s2{margin-left:0}
+  .titleblock{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tb.w2,.tb.w3{grid-column:span 2}
+  .tb.r{border-right:1px solid var(--ink)}
+  .tb:nth-child(odd):not(.w2):not(.w3){border-right:1px solid var(--ink)}
+}
+@media (max-width:640px){
+  body{font-size:1rem}
+  .bar .wrap{gap:12px;min-height:58px}
+  .mono-mark span{display:none}
+  .pen-switch .lbl{display:none}
+  .insert{margin-left:.4em}
+  .p{grid-template-columns:1fr;padding:20px 4px;gap:6px}
+  .p .tech{grid-column:1}
+  .p .go,.p .badge{grid-row:auto;grid-column:1;justify-self:start;margin-top:6px}
+  .bom td:nth-child(2){white-space:normal}
+  .bom th,.bom td{padding:10px 10px}
+  .titleblock{grid-template-columns:1fr}
+  .tb.w2,.tb.w3{grid-column:auto}
+  .tb{border-right:0 !important}
+  .progress{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition:none !important;animation:none !important}
+  .js .write{clip-path:none}
+  .caret-blink{display:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main"><span lang="bg">Към съдържанието</span><span lang="en">Skip to content</span></a>
+<div class="progress pen" aria-hidden="true"></div>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="mono-mark" href="#top"><i>РЧ</i><span class="mark-name">Радослав Чакъров</span></a>
+    <nav class="nav" aria-label="Main">
+      <a href="#corrections"><span lang="bg">Корекции</span><span lang="en">Corrections</span></a>
+      <a href="#work"><span lang="bg">Проекти</span><span lang="en">Work</span></a>
+      <a href="#before"><span lang="bg">Преди кода</span><span lang="en">Before code</span></a>
+      <a href="#contact"><span lang="bg">Контакт</span><span lang="en">Contact</span></a>
+    </nav>
+    <div class="controls">
+      <button class="pen-switch" id="penSwitch" role="switch" aria-checked="true">
+        <span class="lbl" aria-hidden="true"><span lang="bg">Червен химикал</span><span lang="en">Red pen</span></span>
+        <span class="track" aria-hidden="true"><span class="knob"></span></span>
+      </button>
+      <div class="lang" role="group" aria-label="Език / Language">
+        <button type="button" data-lang="bg" aria-pressed="true">BG</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ===================== HERO ===================== -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <div class="hero-top">
+      <div>
+        <p class="draft strike-host" id="draft"><span lang="bg"><span class="ai">Радослав е разработчик, който <span class="del">използва изкуствен интелект, за да пише код.</span></span></span><span lang="en"><span class="ai">Radoslav is a developer who <span class="del">uses AI to write code.</span></span></span><span class="caret-blink" aria-hidden="true"></span></p>
+        <div class="insert hand pen write">
+          <svg viewBox="0 0 20 24" aria-hidden="true"><path d="M2 22 L10 4 L18 22"/></svg>
+          <span><span lang="bg">проверява всичко, което AI пише.</span><span lang="en">questions everything AI writes.</span></span>
+        </div>
+      </div>
+      <p class="margin-note hand pen write">
+        <svg viewBox="0 0 70 46" aria-hidden="true"><path d="M8 40 C 22 34, 44 30, 60 8 M60 8 L50 11 M60 8 L61 19"/></svg>
+        <span lang="bg">Изключи химикала горе и ще видиш само AI.</span><span lang="en">Switch the pen off up top to see only the AI.</span>
+      </p>
+    </div>
+
+    <div class="ident">
+      <h1><span lang="bg"><span>Радослав</span><span>Чакъров</span></span><span lang="en"><span>Radoslav</span><span>Chakarov</span></span></h1>
+      <div>
+        <p class="role">
+          <span lang="bg"><strong>Разработчик и QA автоматизация</strong> от Крумовград. Изграждам дигитални решения за малък бизнес заедно с изкуствен интелект и ги тествам, преди да стигнат до клиента.</span>
+          <span lang="en"><strong>Developer and QA automation</strong> from Krumovgrad, Bulgaria. I build digital tools for small businesses together with AI, and I test them before they reach the client.</span>
+        </p>
+        <div class="actions">
+          <a class="btn primary" href="#corrections"><span lang="bg">Виж корекциите</span><span lang="en">See the corrections</span>
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 3v12M4 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <a class="btn" href="#contact"><span lang="bg">Свържи се с мен</span><span lang="en">Get in touch</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== МЕТОД ===================== -->
+<section class="section" id="method" style="padding-top:clamp(40px,6vw,80px)">
+  <div class="wrap">
+    <div class="head">
+      <h2><span lang="bg">AI пише бързо. Някой трябва да мисли бавно.</span><span lang="en">AI writes fast. Someone has to think slowly.</span></h2>
+      <p><span lang="bg">Всяко нещо, което правя, минава през едни и същи три стъпки. Без изключения.</span><span lang="en">Everything I make goes through the same three steps. No exceptions.</span></p>
+    </div>
+    <div class="pipeline">
+      <div class="stage st-ai">
+        <span class="n">1</span>
+        <h3><span lang="bg">Машината предлага</span><span lang="en">The machine proposes</span></h3>
+        <p><span lang="bg">AI пише черновата: код, структура на базата, текстове. Бързо и уверено. Понякога грешно.</span><span lang="en">AI writes the draft: code, database structure, copy. Fast and confident. Sometimes wrong.</span></p>
+      </div>
+      <div class="link-arrow" aria-hidden="true"><svg viewBox="0 0 56 30"><path d="M4 16 C 18 8, 34 22, 50 14 M50 14 L42 9 M50 14 L44 22"/></svg></div>
+      <div class="stage st-me">
+        <span class="n">2</span>
+        <h3><span lang="bg">Аз се съмнявам</span><span lang="en">I doubt it</span></h3>
+        <p><span lang="bg">Какво може да се счупи? Кой ще го ползва? Какво не е казано? Етично ли е?</span><span lang="en">What can break? Who will use it? What wasn't said? Is it ethical?</span></p>
+      </div>
+      <div class="link-arrow" aria-hidden="true"><svg viewBox="0 0 56 30"><path d="M4 14 C 20 22, 34 6, 50 15 M50 15 L42 9 M50 15 L43 22"/></svg></div>
+      <div class="stage st-test">
+        <span class="n">3</span>
+        <h3><span lang="bg">Тестът решава</span><span lang="en">The test decides</span></h3>
+        <p><span lang="bg">Playwright, гранични стойности, реален телефон. Не „изглежда, че работи“, а „доказано работи“.</span><span lang="en">Playwright, boundary values, a real phone. Not “looks like it works” but “proven to work”.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== КОРЕКЦИИТЕ ===================== -->
+<section class="section" id="corrections">
+  <div class="wrap">
+    <div class="head">
+      <h2><span lang="bg">Пет места, където машината грешеше</span><span lang="en">Five places where the machine was wrong</span></h2>
+      <p><span lang="bg">Реални моменти от мои проекти. Първо е черновата на AI, след нея е червеният химикал.</span><span lang="en">Real moments from my projects. First the AI draft, then the red pen.</span></p>
+    </div>
+
+    <div class="cases">
+      <article class="case">
+        <div class="case-title"><h3>SEV&amp;BRO</h3><span><span lang="bg">Резервации за автомивка</span><span lang="en">Car wash booking</span></span></div>
+        <div class="sheet"><div class="sheet-head"><i></i><span lang="bg">чернова от AI</span><span lang="en">AI draft</span></div>
+          <p class="ai strike-host"><span lang="bg">Функцията за изтриване на резервация е готова. <span class="del">Връща успех, значи работи.</span></span><span lang="en">The booking delete function is done. <span class="del">It returns success, so it works.</span></span></p></div>
+        <div class="verdict">
+          <svg class="arrow pen" viewBox="0 0 58 44" aria-hidden="true"><path d="M54 6 C 36 4, 16 14, 6 34 M6 34 L5 24 M6 34 L15 30"/></svg>
+          <span class="hand pen write"><span lang="bg">Успех, но записът си стои в базата.</span><span lang="en">Success, but the row is still in the database.</span></span>
+          <p class="result"><span lang="bg">Причината беше RLS правило в Supabase. <span class="hl">Оправих правилото и проверявам базата, а не съобщението.</span></span><span lang="en">The cause was a Supabase RLS policy. <span class="hl">I fixed the policy and now check the database, not the message.</span></span></p>
+        </div>
+      </article>
+
+      <article class="case">
+        <div class="case-title"><h3>StalkerwareScanner</h3><span><span lang="bg">Android защита</span><span lang="en">Android security</span></span></div>
+        <div class="sheet"><div class="sheet-head"><i></i><span lang="bg">чернова от AI</span><span lang="en">AI draft</span></div>
+          <p class="ai strike-host"><span lang="bg"><span class="del">Можем да добавим защита срещу деинсталиране, за да не може приложението да бъде премахнато.</span></span><span lang="en"><span class="del">We can add anti-removal protection so the app can't be uninstalled.</span></span></p></div>
+        <div class="verdict">
+          <svg class="arrow pen" viewBox="0 0 58 44" aria-hidden="true"><path d="M54 8 C 40 14, 20 8, 6 30 M6 30 L4 20 M6 30 L15 27"/></svg>
+          <span class="hand pen write"><span lang="bg">Не. Точно срещу това защитаваме.</span><span lang="en">No. That's exactly what we protect against.</span></span>
+          <p class="result"><span lang="bg">Приложение, което не може да се махне, се държи като шпионски софтуер. <span class="hl">Потребителят винаги остава в контрол.</span></span><span lang="en">An app you can't remove behaves like stalkerware itself. <span class="hl">The user always stays in control.</span></span></p>
+        </div>
+      </article>
+
+      <article class="case">
+        <div class="case-title"><h3>BG-RouteMaster Pro</h3><span><span lang="bg">Валидация на данни</span><span lang="en">Input validation</span></span></div>
+        <div class="sheet"><div class="sheet-head"><i></i><span lang="bg">чернова от AI</span><span lang="en">AI draft</span></div>
+          <p class="ai strike-host"><span lang="bg">Полето приема стойности от 1 до 100. <span class="del">Тествано с 50, работи.</span></span><span lang="en">The field accepts values from 1 to 100. <span class="del">Tested with 50, works.</span></span></p></div>
+        <div class="verdict">
+          <svg class="arrow pen" viewBox="0 0 58 44" aria-hidden="true"><path d="M54 6 C 36 4, 16 14, 6 34 M6 34 L5 24 M6 34 L15 30"/></svg>
+          <span class="hand pen write"><span lang="bg">50 не доказва нищо. Пробвай 0, 1, 100, 101.</span><span lang="en">50 proves nothing. Try 0, 1, 100, 101.</span></span>
+          <p class="result"><span lang="bg">Анализ на гранични стойности. <span class="hl">Бъговете живеят по ръбовете.</span></span><span lang="en">Boundary value analysis. <span class="hl">Bugs live at the edges.</span></span></p>
+        </div>
+      </article>
+
+      <article class="case">
+        <div class="case-title"><h3>Save Animals Plovdiv</h3><span><span lang="bg">Платформа за сигнали, безплатно</span><span lang="en">Rescue reports, pro bono</span></span></div>
+        <div class="sheet"><div class="sheet-head"><i></i><span lang="bg">чернова от AI</span><span lang="en">AI draft</span></div>
+          <p class="ai strike-host"><span lang="bg">При нов сигнал Edge Function изпраща известие до доброволците. <span class="del">Функционалността е завършена.</span></span><span lang="en">On a new report, an Edge Function notifies volunteers. <span class="del">The feature is complete.</span></span></p></div>
+        <div class="verdict">
+          <svg class="arrow pen" viewBox="0 0 58 44" aria-hidden="true"><path d="M54 8 C 40 14, 20 8, 6 30 M6 30 L4 20 M6 30 L15 27"/></svg>
+          <span class="hand pen write"><span lang="bg">На теория. На практика не тръгваше.</span><span lang="en">In theory. In practice it never fired.</span></span>
+          <p class="result"><span lang="bg">Свързах функцията чрез тригер с pg_net и тествах на реален Android телефон. <span class="hl">Известието стига, когато животното има нужда.</span></span><span lang="en">I wired it through a pg_net trigger and tested on a real Android phone. <span class="hl">The alert arrives when the animal needs it.</span></span></p>
+        </div>
+      </article>
+
+      <article class="case">
+        <div class="case-title"><h3><span lang="bg">Дигитално меню</span><span lang="en">Digital menu</span></h3><span><span lang="bg">Платформа за ресторанти</span><span lang="en">Restaurant platform</span></span></div>
+        <div class="sheet"><div class="sheet-head"><i></i><span lang="bg">чернова от AI</span><span lang="en">AI draft</span></div>
+          <p class="ai strike-host"><span lang="bg">Поръчките минават. <span class="del">Проверих ръчно, всичко е наред.</span></span><span lang="en">Orders go through. <span class="del">Checked manually, all good.</span></span></p></div>
+        <div class="verdict">
+          <svg class="arrow pen" viewBox="0 0 58 44" aria-hidden="true"><path d="M54 6 C 36 4, 16 14, 6 34 M6 34 L5 24 M6 34 L15 30"/></svg>
+          <span class="hand pen write"><span lang="bg">Ръчно значи веднъж.</span><span lang="en">Manually means once.</span></span>
+          <p class="result"><span lang="bg">Написах 9 автоматизирани сценария на C# с Playwright. <span class="hl">Сега проверката става при всяка промяна.</span></span><span lang="en">I wrote 9 automated scenarios in C# with Playwright. <span class="hl">Now every change gets checked.</span></span></p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ПРОЕКТИ ===================== -->
+<section class="section" id="work">
+  <div class="wrap">
+    <div class="head">
+      <h2><span lang="bg">Какво съм изградил</span><span lang="en">What I've built</span></h2>
+      <p><span lang="bg">Подбрани проекти от последната година: за клиенти, за общността и за ежедневни проблеми.</span><span lang="en">Selected projects from the past year: for clients, for the community, and for everyday problems.</span></p>
+    </div>
+
+    <div class="filters" role="group" aria-label="Filter">
+      <button class="chip" data-f="all" aria-pressed="true"><span lang="bg">Всички</span><span lang="en">All</span><b data-count="all"></b></button>
+      <button class="chip" data-f="biz" aria-pressed="false"><span lang="bg">За бизнеса</span><span lang="en">For business</span><b data-count="biz"></b></button>
+      <button class="chip" data-f="com" aria-pressed="false"><span lang="bg">За общността</span><span lang="en">Community</span><b data-count="com"></b></button>
+      <button class="chip" data-f="qa" aria-pressed="false"><span lang="bg">Тестване и сигурност</span><span lang="en">Testing and security</span><b data-count="qa"></b></button>
+      <button class="chip" data-f="app" aria-pressed="false"><span lang="bg">Програми и приложения</span><span lang="en">Apps and tools</span><b data-count="app"></b></button>
+    </div>
+
+    <ul class="index" id="index">
+      <li class="p" data-cat="biz">
+        <h3><span lang="bg">Дигитално меню</span><span lang="en">Digital menu platform</span><span class="cat"><span lang="bg">За бизнеса</span><span lang="en">Business</span></span></h3>
+        <p class="desc"><span lang="bg">QR меню с поръчки, склад, смени, резервации и превод. Работи при реален клиент.</span><span lang="en">QR menu with ordering, inventory, shifts, reservations and translation. Used by a live client.</span></p>
+        <p class="tech">JavaScript, Tailwind, Supabase, Vercel, DeepL, Playwright</p>
+        <a class="go" href="https://digital-menu-orders.vercel.app" target="_blank" rel="noopener"><span lang="bg">Демо</span><span lang="en">Demo</span><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4 10L10 4M5 4h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>
+      </li>
+      <li class="p" data-cat="biz">
+        <h3>SEV&amp;BRO<span class="cat"><span lang="bg">За бизнеса</span><span lang="en">Business</span></span></h3>
+        <p class="desc"><span lang="bg">Резервации за автомивка: Android приложение и уеб, вземане на колата по GPS, напомняния, няколко езика.</span><span lang="en">Car wash booking: Android app and web, GPS car pickup, reminders, multilingual.</span></p>
+        <p class="tech">Kotlin, Jetpack Compose, Supabase, Vercel</p>
+        <a class="go" href="https://sevbrocarwash.vercel.app" target="_blank" rel="noopener"><span lang="bg">Сайт</span><span lang="en">Site</span><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4 10L10 4M5 4h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>
+      </li>
+      <li class="p" data-cat="biz">
+        <h3><span lang="bg">Хотелски резервации</span><span lang="en">Hotel booking sites</span><span class="cat"><span lang="bg">За бизнеса</span><span lang="en">Business</span></span></h3>
+        <p class="desc"><span lang="bg">Изграждам сайтове с онлайн резервации за хотели и къщи за гости. Три демо концепции с интерактивен календар и админ панел в реално време със звуков сигнал.</span><span lang="en">I build booking websites for hotels and guesthouses. Three demo concepts with an interactive calendar and a real-time admin panel with sound alerts.</span></p>
+        <p class="tech">JavaScript, Supabase Realtime</p>
+        <span class="badge"><span lang="bg">по заявка</span><span lang="en">on request</span></span>
+      </li>
+      <li class="p" data-cat="biz">
+        <h3><span lang="bg">Хижа „Свежест“</span><span lang="en">“Svezhest” lodge</span><span class="cat"><span lang="bg">За бизнеса</span><span lang="en">Business</span></span></h3>
+        <p class="desc"><span lang="bg">Резервация на стаи по реалните цени и правила на общинската хижа, с галерия и меню на ресторанта.</span><span lang="en">Room booking built on the municipal lodge's real prices and rules, with a gallery and restaurant menu.</span></p>
+        <p class="tech">JavaScript, Supabase</p>
+        <span class="badge"><span lang="bg">демо</span><span lang="en">demo</span></span>
+      </li>
+      <li class="p" data-cat="biz">
+        <h3><span lang="bg">Автогара Крумовград</span><span lang="en">Krumovgrad bus station</span><span class="cat"><span lang="bg">За бизнеса</span><span lang="en">Business</span></span></h3>
+        <p class="desc"><span lang="bg">Разписание по реални данни, админ панел и смяна на визията без програмист.</span><span lang="en">Timetable from real data, an admin panel, and theme changes without a developer.</span></p>
+        <p class="tech">JavaScript, Supabase</p>
+        <span class="badge"><span lang="bg">демо</span><span lang="en">demo</span></span>
+      </li>
+      <li class="p" data-cat="com">
+        <h3>Save Animals Plovdiv<span class="cat"><span lang="bg">За общността, безплатно</span><span lang="en">Community, pro bono</span></span></h3>
+        <p class="desc"><span lang="bg">Сигнали за бедстващи животни с карта, обновяване в реално време и известия към доброволците.</span><span lang="en">Reports for animals in need, with a map, real-time updates and push alerts to volunteers.</span></p>
+        <p class="tech">JavaScript, Supabase (RLS, Realtime, Edge Functions), Web Push, Leaflet</p>
+        <a class="go" href="https://saveanimalsplovdiv.vercel.app" target="_blank" rel="noopener"><span lang="bg">Сайт</span><span lang="en">Site</span><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4 10L10 4M5 4h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>
+      </li>
+      <li class="p" data-cat="com">
+        <h3>Krumovgrad place to be<span class="cat"><span lang="bg">За общността</span><span lang="en">Community</span></span></h3>
+        <p class="desc"><span lang="bg">Интересни места в община Крумовград, предложени от хората, с одобрение от админ и кадри от дрон.</span><span lang="en">Interesting places in Krumovgrad municipality, submitted by locals, admin-approved, with drone footage.</span></p>
+        <p class="tech">JavaScript, Supabase, Vercel</p>
+        <a class="go" href="https://krumovgrad-place-to-be.vercel.app" target="_blank" rel="noopener"><span lang="bg">Сайт</span><span lang="en">Site</span><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4 10L10 4M5 4h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>
+      </li>
+      <li class="p" data-cat="qa">
+        <h3>QaTestGen<span class="cat"><span lang="bg">Тестване</span><span lang="en">Testing</span></span></h3>
+        <p class="desc"><span lang="bg">Генерира тестови сценарии и случаи от бизнес изисквания. Работи изцяло локално, чувствителните данни не стигат до AI.</span><span lang="en">Generates test scenarios and cases from business requirements. Runs fully offline; sensitive data never reaches the AI.</span></p>
+        <p class="tech">C#, .NET, Ollama</p>
+        <span class="badge"><span lang="bg">в работа</span><span lang="en">in progress</span></span>
+      </li>
+      <li class="p" data-cat="qa">
+        <h3>StalkerwareScanner<span class="cat"><span lang="bg">Сигурност</span><span lang="en">Security</span></span></h3>
+        <p class="desc"><span lang="bg">Открива шпионски приложения на Android, следи във фонов режим и предупреждава за нови рискови пакети.</span><span lang="en">Detects stalkerware on Android, monitors in the background, and alerts on new high-risk packages.</span></p>
+        <p class="tech">Kotlin, WorkManager</p>
+      </li>
+      <li class="p" data-cat="qa">
+        <h3>TG Fake Checker<span class="cat"><span lang="bg">Сигурност</span><span lang="en">Security</span></span></h3>
+        <p class="desc"><span lang="bg">Оценява дали профил в Telegram е фалшив и разпознава поведение на измамници. За Windows и Android.</span><span lang="en">Scores whether a Telegram account is fake and flags scam behaviour. Windows and Android.</span></p>
+        <p class="tech">C#, .NET for Android, WTelegramClient</p>
+      </li>
+      <li class="p" data-cat="qa">
+        <h3>HiddenEye<span class="cat"><span lang="bg">Сигурност</span><span lang="en">Security</span></span></h3>
+        <p class="desc"><span lang="bg">Търси скрити камери по четири метода: магнитометър, Wi‑Fi/BLE, мрежа и инфрачервена светлина.</span><span lang="en">Looks for hidden cameras four ways: magnetometer, Wi‑Fi/BLE, network scan, infrared.</span></p>
+        <p class="tech">Kotlin, Jetpack Compose</p>
+      </li>
+      <li class="p" data-cat="app">
+        <h3><span lang="bg">Работилницата на Радо</span><span lang="en">Rado's Workshop</span><span class="cat">Windows</span></h3>
+        <p class="desc"><span lang="bg">Моите Windows програми на едно място: подредба на работния плот, почистване на диска, „Грешна подредба“ и други.</span><span lang="en">My Windows utilities in one place: desktop organizer, disk cleanup, a wrong-keyboard-layout fixer and more.</span></p>
+        <p class="tech">C#, .NET, Vercel</p>
+        <a class="go" href="https://rado-workshop.vercel.app" target="_blank" rel="noopener"><span lang="bg">Сайт</span><span lang="en">Site</span><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4 10L10 4M5 4h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>
+      </li>
+      <li class="p" data-cat="app">
+        <h3><span lang="bg">Каба гайда</span><span lang="en">Kaba gaida trainer</span><span class="cat"><span lang="bg">Windows и Android</span><span lang="en">Windows and Android</span></span></h3>
+        <p class="desc"><span lang="bg">Помага на начинаещи гайдари: слуша как свири майстор и сравнява с ученика. Плюс „Гайда Хармония“, която акомпанира на живо.</span><span lang="en">Helps beginner Rhodope bagpipe players: learns from a master's playing and compares the student. Plus “Gaida Harmonia”, which accompanies live.</span></p>
+        <p class="tech">C#, .NET, Kotlin, <span lang="bg">анализ на звук</span><span lang="en">audio analysis</span></p>
+        <a class="go" href="https://github.com/waitingboy-collab/kaba-gaida-android" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4 10L10 4M5 4h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>
+      </li>
+      <li class="p" data-cat="app">
+        <h3><span lang="bg">Преводач за TikTok LIVE</span><span lang="en">TikTok LIVE translator</span><span class="cat"><span lang="bg">Windows и уеб</span><span lang="en">Windows and web</span></span></h3>
+        <p class="desc"><span lang="bg">Превежда лайв в реално време и пише превода в чата. Отделно уеб приложение превежда коментарите.</span><span lang="en">Translates a live stream in real time and posts it to the chat. A separate web app translates the comments.</span></p>
+        <p class="tech">C#, JavaScript, Google Translate</p>
+        <a class="go" href="https://github.com/waitingboy-collab/tiktok-chat-translator" target="_blank" rel="noopener">GitHub<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4 10L10 4M5 4h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>
+      </li>
+      <li class="p" data-cat="app">
+        <h3>DroneStream<span class="cat">Android</span></h3>
+        <p class="desc"><span lang="bg">Предаване на живо от дрон към YouTube през RTMP.</span><span lang="en">Live drone streaming to YouTube over RTMP.</span></p>
+        <p class="tech">Kotlin, Jetpack Compose, RootEncoder</p>
+      </li>
+      <li class="p" data-cat="app">
+        <h3><span lang="bg">Фотограметрия</span><span lang="en">Photogrammetry</span><span class="cat">Android</span></h3>
+        <p class="desc"><span lang="bg">3D модел от снимки на телефона, съвместим с OpenDroneMap.</span><span lang="en">3D models from phone photos, compatible with OpenDroneMap.</span></p>
+        <p class="tech">Kotlin, ORB features, PLY</p>
+      </li>
+      <li class="p" data-cat="app">
+        <h3><span lang="bg">Генератор на G‑код</span><span lang="en">G‑code generator</span><span class="cat">CNC</span></h3>
+        <p class="desc"><span lang="bg">От чертеж до програма за CNC машина.</span><span lang="en">From a drawing to a CNC machine program.</span></p>
+        <p class="tech">C#, Python, ezdxf, shapely</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===================== ПРЕДИ КОДА ===================== -->
+<section class="section" id="before">
+  <div class="wrap">
+    <div class="head">
+      <h2><span lang="bg">Критичното мислене не го научих от кода</span><span lang="en">I didn't learn critical thinking from code</span></h2>
+      <p><span lang="bg">Донесох го от предишните си професии. Там грешката струва материал, пари или техника.</span><span lang="en">I brought it from my earlier jobs, where a mistake costs material, money or hardware.</span></p>
+    </div>
+
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#44587A" stroke-width="1" opacity=".55"/></pattern>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L10 5 L0 9 Z" fill="#44587A"/></marker>
+      </defs>
+    </svg>
+
+    <div class="drawings">
+      <!-- CNC -->
+      <article class="dw">
+        <figure>
+          <svg viewBox="0 0 340 210" role="img" aria-label="Технически чертеж на струговано тяло с толеранс">
+            <line class="bp-center" x1="18" y1="112" x2="322" y2="112"/>
+            <path class="bp bp-hatch" d="M48 70 H176 V86 H250 V138 H176 V154 H48 Z"/>
+            <path class="bp" d="M48 70 H176 V86 H250 V138 H176 V154 H48 Z"/>
+            <line class="bp-hidden" x1="48" y1="100" x2="130" y2="100"/><line class="bp-hidden" x1="48" y1="124" x2="130" y2="124"/>
+            <line class="bp-thin" x1="48" y1="62" x2="48" y2="40"/><line class="bp-thin" x1="250" y1="80" x2="250" y2="40"/>
+            <line class="bp-thin" x1="48" y1="46" x2="250" y2="46" marker-start="url(#ar)" marker-end="url(#ar)"/>
+            <text class="bp-text" x="138" y="40" text-anchor="middle">120</text>
+            <line class="bp-thin" x1="256" y1="86" x2="292" y2="86"/><line class="bp-thin" x1="256" y1="138" x2="292" y2="138"/>
+            <line class="bp-thin" x1="284" y1="86" x2="284" y2="138" marker-start="url(#ar)" marker-end="url(#ar)"/>
+            <text class="bp-text" x="292" y="104">Ø52</text>
+            <text class="bp-text" x="292" y="124">±0.01</text>
+            <g class="pen">
+              <ellipse class="red" cx="310" cy="120" rx="25" ry="10" transform="rotate(-6 310 120)"/>
+              <path class="red" d="M300 132 C 290 160, 260 176, 226 182"/>
+              <text class="red-text" x="80" y="190"><tspan lang="bg">мери два пъти</tspan><tspan lang="en">measure twice</tspan></text>
+            </g>
+          </svg>
+        </figure>
+        <div class="body">
+          <h3><span lang="bg">CNC оператор</span><span lang="en">CNC operator</span></h3>
+          <p class="where"><span lang="bg">Серта България, Кърджали</span><span lang="en">Serta Bulgaria, Kardzhali</span></p>
+          <p class="lesson"><span lang="bg">Когато режеш по програма, грешката в кода излиза в материала. Няма бутон „отмени“.</span><span lang="en">When you cut from a program, a mistake in the code shows up in the material. There's no undo.</span></p>
+        </div>
+      </article>
+
+      <!-- Счетоводство -->
+      <article class="dw">
+        <figure>
+          <svg viewBox="0 0 340 210" role="img" aria-label="Счетоводна таблица с балансирани суми">
+            <rect class="bp" x="40" y="26" width="260" height="150"/>
+            <line class="bp" x1="40" y1="50" x2="300" y2="50"/>
+            <line class="bp-thin" x1="170" y1="26" x2="170" y2="176"/>
+            <line class="bp-thin" x1="40" y1="76" x2="300" y2="76"/><line class="bp-thin" x1="40" y1="100" x2="300" y2="100"/><line class="bp-thin" x1="40" y1="124" x2="300" y2="124"/>
+            <line class="bp" x1="40" y1="146" x2="300" y2="146"/><line class="bp" x1="40" y1="150" x2="300" y2="150"/>
+            <text class="bp-text" x="105" y="43" text-anchor="middle"><tspan lang="bg">Дебит</tspan><tspan lang="en">Debit</tspan></text>
+            <text class="bp-text" x="235" y="43" text-anchor="middle"><tspan lang="bg">Кредит</tspan><tspan lang="en">Credit</tspan></text>
+            <text class="bp-text" x="160" y="68" text-anchor="end">4 200.00</text><text class="bp-text" x="290" y="92" text-anchor="end">6 480.00</text>
+            <text class="bp-text" x="160" y="92" text-anchor="end">3 900.00</text><text class="bp-text" x="290" y="116" text-anchor="end">5 820.00</text>
+            <text class="bp-text" x="160" y="116" text-anchor="end">4 200.00</text>
+            <text class="bp-text" x="160" y="168" text-anchor="end" font-weight="500">12 300.00</text>
+            <text class="bp-text" x="290" y="168" text-anchor="end" font-weight="500">12 300.00</text>
+            <g class="pen">
+              <path class="red" d="M174 170 l6 6 l12 -16"/>
+              <path class="red" d="M96 156 C 120 148, 300 148, 300 166 C 300 184, 110 186, 92 172 C 84 164, 90 158, 104 156"/>
+              <text class="red-text" x="40" y="200"><tspan lang="bg">връзва се. няма „почти“.</tspan><tspan lang="en">it balances. no “almost”.</tspan></text>
+            </g>
+          </svg>
+        </figure>
+        <div class="body">
+          <h3><span lang="bg">Счетоводство</span><span lang="en">Bookkeeping</span></h3>
+          <p class="where"><span lang="bg">Счетоводна работа</span><span lang="en">Accounting work</span></p>
+          <p class="lesson"><span lang="bg">Балансът или се връзва, или не. Числата не лъжат, но хората и машините понякога лъжат.</span><span lang="en">A balance either reconciles or it doesn't. Numbers don't lie. People and machines sometimes do.</span></p>
+        </div>
+      </article>
+
+      <!-- Дрон -->
+      <article class="dw">
+        <figure>
+          <svg viewBox="0 0 340 210" role="img" aria-label="Чертеж на дрон отгоре с проверка преди полет">
+            <line class="bp-center" x1="72" y1="34" x2="208" y2="170"/><line class="bp-center" x1="208" y1="34" x2="72" y2="170"/>
+            <rect class="bp bp-hatch" x="118" y="80" width="44" height="44" rx="8"/>
+            <rect class="bp" x="118" y="80" width="44" height="44" rx="8"/>
+            <circle class="bp" cx="86" cy="48" r="9"/><circle class="bp" cx="194" cy="48" r="9"/><circle class="bp" cx="86" cy="156" r="9"/><circle class="bp" cx="194" cy="156" r="9"/>
+            <circle class="bp-hidden" cx="86" cy="48" r="28"/><circle class="bp-hidden" cx="194" cy="48" r="28"/><circle class="bp-hidden" cx="86" cy="156" r="28"/><circle class="bp-hidden" cx="194" cy="156" r="28"/>
+            <line class="bp-thin" x1="58" y1="192" x2="222" y2="192" marker-start="url(#ar)" marker-end="url(#ar)"/>
+            <text class="bp-text" x="140" y="205" text-anchor="middle">A1/A3</text>
+            <g class="pen">
+              <path class="red" d="M244 52 l5 6 l10 -13"/><text class="red-text" x="266" y="60"><tspan lang="bg">батерия</tspan><tspan lang="en">battery</tspan></text>
+              <path class="red" d="M244 88 l5 6 l10 -13"/><text class="red-text" x="266" y="96">GPS</text>
+              <path class="red" d="M244 124 l5 6 l10 -13"/><text class="red-text" x="266" y="132"><tspan lang="bg">вятър</tspan><tspan lang="en">wind</tspan></text>
+              <path class="red" d="M244 160 l5 6 l10 -13"/><text class="red-text" x="266" y="168"><tspan lang="bg">зона</tspan><tspan lang="en">zone</tspan></text>
+            </g>
+          </svg>
+        </figure>
+        <div class="body">
+          <h3><span lang="bg">Пилот на дрон</span><span lang="en">Drone pilot</span></h3>
+          <p class="where">Radoslav Aerial Videography</p>
+          <p class="lesson"><span lang="bg">Проверка преди всеки полет. Без изключения и без „ще стане“. Чеклистът е тест, който пази техниката.</span><span lang="en">A check before every flight. No exceptions, no “it'll be fine”. A checklist is a test that saves hardware.</span></p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== СПЕЦИФИКАЦИЯ ===================== -->
+<section class="section" id="skills">
+  <div class="wrap">
+    <div class="head">
+      <h2><span lang="bg">Спецификация</span><span lang="en">Bill of materials</span></h2>
+      <p><span lang="bg">С какво работя и за какво го използвам.</span><span lang="en">What I work with, and what I use it for.</span></p>
+    </div>
+    <div class="bom-wrap">
+      <table class="bom">
+        <thead><tr><th><span lang="bg">Поз.</span><span lang="en">Item</span></th><th><span lang="bg">Инструмент</span><span lang="en">Tool</span></th><th><span lang="bg">Приложение</span><span lang="en">Used for</span></th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>C# / .NET</td><td><span lang="bg">Програми за Windows, Android, автоматизирани тестове</span><span lang="en">Windows programs, Android, automated tests</span></td></tr>
+          <tr><td>2</td><td>Kotlin, Jetpack Compose</td><td><span lang="bg">Android приложения</span><span lang="en">Android apps</span></td></tr>
+          <tr><td>3</td><td>JavaScript, Tailwind</td><td><span lang="bg">Сайтове и уеб платформи</span><span lang="en">Websites and web platforms</span></td></tr>
+          <tr><td>4</td><td>Supabase</td><td><span lang="bg">Бази данни, RLS, Realtime, Edge Functions</span><span lang="en">Databases, RLS, Realtime, Edge Functions</span></td></tr>
+          <tr><td>5</td><td>Playwright</td><td><span lang="bg">Автоматизирани тестове на C#</span><span lang="en">Automated tests in C#</span></td></tr>
+          <tr><td>6</td><td>Ollama</td><td><span lang="bg">AI на моя компютър, без изтичане на данни</span><span lang="en">AI on my own machine, no data leaving it</span></td></tr>
+          <tr><td>7</td><td>Python</td><td><span lang="bg">Помощни инструменти, геометрия за CNC</span><span lang="en">Helper tools, geometry for CNC</span></td></tr>
+          <tr><td>8</td><td>Vercel, Git, GitHub</td><td><span lang="bg">Публикуване и контрол на версиите</span><span lang="en">Deployment and version control</span></td></tr>
+          <tr><td>9</td><td><span lang="bg">Промпт инженеринг</span><span lang="en">Prompt engineering</span></td><td><span lang="bg">Да зададеш на AI правилния въпрос</span><span lang="en">Asking AI the right question</span></td></tr>
+        </tbody>
+      </table>
+      <div class="stamps">
+        <div class="stamp s1">SoftUni<big><span lang="bg">Отличен 6.00</span><span lang="en">Excellent 6.00</span></big><small>Introduction to Programming with AI, 2026</small></div>
+        <div class="stamp s2"><span lang="bg">Пилот на дрон</span><span lang="en">Drone pilot</span><big>A1/A3</big><small><span lang="bg">Сертификат, търговски полети</span><span lang="en">Certified, commercial flights</span></small></div>
+        <div class="stamp s3"><span lang="bg">В процес</span><span lang="en">In progress</span><big>QA Automation</big><small>SoftUni</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== КОНТАКТ / ЩАМПА ===================== -->
+<section class="closing" id="contact">
+  <div class="wrap">
+    <h2><span lang="bg">Търсите някой, който проверява?</span><span lang="en">Looking for someone who checks?</span></h2>
+    <p class="lead"><span lang="bg">Търся работа като QA или разработчик (дистанционно) и приемам проекти за малък бизнес.</span><span lang="en">I'm looking for remote QA or developer roles, and I take on projects for small businesses.</span></p>
+
+    <div class="titleblock">
+      <div class="tb w2"><small><span lang="bg">Изготвил</span><span lang="en">Drawn by</span></small><strong><span lang="bg">Радослав Чакъров + AI</span><span lang="en">Radoslav Chakarov + AI</span></strong></div>
+      <div class="tb w2"><small><span lang="bg">Проверил</span><span lang="en">Checked by</span></small><span class="sig"><span lang="bg">Р. Чакъров</span><span lang="en">R. Chakarov</span></span></div>
+      <div class="tb"><small><span lang="bg">Място</span><span lang="en">Location</span></small><strong><span lang="bg">Крумовград</span><span lang="en">Krumovgrad, BG</span></strong></div>
+      <div class="tb r"><small><span lang="bg">Мащаб</span><span lang="en">Scale</span></small><strong>1:1</strong></div>
+      <a class="tb w2 last" href="mailto:waitingboy@gmail.com"><small><span lang="bg">Имейл</span><span lang="en">Email</span></small><strong>waitingboy@gmail.com</strong></a>
+      <a class="tb w2 last wa" href="https://wa.me/qr/4OSMJYD2MHMNC1" target="_blank" rel="noopener"><svg class="qr" viewBox="-2 -2 33 33" role="img" aria-label="WhatsApp QR"><rect x="-2" y="-2" width="33" height="33" fill="#fff"/><path d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM10 0h1v1h-1zM11 0h1v1h-1zM12 0h1v1h-1zM14 0h1v1h-1zM17 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM25 0h1v1h-1zM26 0h1v1h-1zM27 0h1v1h-1zM28 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM13 1h1v1h-1zM17 1h1v1h-1zM19 1h1v1h-1zM22 1h1v1h-1zM28 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM12 2h1v1h-1zM15 2h1v1h-1zM19 2h1v1h-1zM20 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM25 2h1v1h-1zM26 2h1v1h-1zM28 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM10 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM13 3h1v1h-1zM16 3h1v1h-1zM17 3h1v1h-1zM18 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM25 3h1v1h-1zM26 3h1v1h-1zM28 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM10 4h1v1h-1zM13 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM25 4h1v1h-1zM26 4h1v1h-1zM28 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM10 5h1v1h-1zM12 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM16 5h1v1h-1zM17 5h1v1h-1zM18 5h1v1h-1zM19 5h1v1h-1zM20 5h1v1h-1zM22 5h1v1h-1zM28 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM25 6h1v1h-1zM26 6h1v1h-1zM27 6h1v1h-1zM28 6h1v1h-1zM9 7h1v1h-1zM10 7h1v1h-1zM15 7h1v1h-1zM17 7h1v1h-1zM19 7h1v1h-1zM20 7h1v1h-1zM0 8h1v1h-1zM2 8h1v1h-1zM4 8h1v1h-1zM6 8h1v1h-1zM9 8h1v1h-1zM10 8h1v1h-1zM11 8h1v1h-1zM12 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM18 8h1v1h-1zM19 8h1v1h-1zM20 8h1v1h-1zM24 8h1v1h-1zM27 8h1v1h-1zM1 9h1v1h-1zM2 9h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM8 9h1v1h-1zM13 9h1v1h-1zM15 9h1v1h-1zM16 9h1v1h-1zM17 9h1v1h-1zM18 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM25 9h1v1h-1zM28 9h1v1h-1zM0 10h1v1h-1zM1 10h1v1h-1zM3 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM10 10h1v1h-1zM11 10h1v1h-1zM12 10h1v1h-1zM14 10h1v1h-1zM15 10h1v1h-1zM16 10h1v1h-1zM17 10h1v1h-1zM18 10h1v1h-1zM21 10h1v1h-1zM22 10h1v1h-1zM23 10h1v1h-1zM24 10h1v1h-1zM26 10h1v1h-1zM27 10h1v1h-1zM28 10h1v1h-1zM1 11h1v1h-1zM4 11h1v1h-1zM8 11h1v1h-1zM9 11h1v1h-1zM11 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM16 11h1v1h-1zM17 11h1v1h-1zM24 11h1v1h-1zM27 11h1v1h-1zM0 12h1v1h-1zM1 12h1v1h-1zM3 12h1v1h-1zM4 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM8 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM14 12h1v1h-1zM15 12h1v1h-1zM22 12h1v1h-1zM25 12h1v1h-1zM27 12h1v1h-1zM28 12h1v1h-1zM0 13h1v1h-1zM1 13h1v1h-1zM2 13h1v1h-1zM3 13h1v1h-1zM4 13h1v1h-1zM8 13h1v1h-1zM9 13h1v1h-1zM10 13h1v1h-1zM12 13h1v1h-1zM14 13h1v1h-1zM15 13h1v1h-1zM19 13h1v1h-1zM20 13h1v1h-1zM21 13h1v1h-1zM22 13h1v1h-1zM25 13h1v1h-1zM28 13h1v1h-1zM0 14h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM7 14h1v1h-1zM8 14h1v1h-1zM12 14h1v1h-1zM13 14h1v1h-1zM21 14h1v1h-1zM25 14h1v1h-1zM27 14h1v1h-1zM28 14h1v1h-1zM1 15h1v1h-1zM2 15h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM7 15h1v1h-1zM9 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1zM15 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM20 15h1v1h-1zM22 15h1v1h-1zM24 15h1v1h-1zM25 15h1v1h-1zM27 15h1v1h-1zM0 16h1v1h-1zM2 16h1v1h-1zM4 16h1v1h-1zM6 16h1v1h-1zM8 16h1v1h-1zM11 16h1v1h-1zM12 16h1v1h-1zM16 16h1v1h-1zM19 16h1v1h-1zM20 16h1v1h-1zM21 16h1v1h-1zM22 16h1v1h-1zM25 16h1v1h-1zM27 16h1v1h-1zM28 16h1v1h-1zM1 17h1v1h-1zM2 17h1v1h-1zM3 17h1v1h-1zM4 17h1v1h-1zM5 17h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM19 17h1v1h-1zM20 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM25 17h1v1h-1zM26 17h1v1h-1zM28 17h1v1h-1zM0 18h1v1h-1zM2 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM7 18h1v1h-1zM8 18h1v1h-1zM9 18h1v1h-1zM11 18h1v1h-1zM14 18h1v1h-1zM15 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM20 18h1v1h-1zM22 18h1v1h-1zM23 18h1v1h-1zM24 18h1v1h-1zM27 18h1v1h-1zM28 18h1v1h-1zM1 19h1v1h-1zM2 19h1v1h-1zM4 19h1v1h-1zM8 19h1v1h-1zM9 19h1v1h-1zM11 19h1v1h-1zM12 19h1v1h-1zM13 19h1v1h-1zM14 19h1v1h-1zM16 19h1v1h-1zM17 19h1v1h-1zM19 19h1v1h-1zM20 19h1v1h-1zM23 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM0 20h1v1h-1zM3 20h1v1h-1zM5 20h1v1h-1zM6 20h1v1h-1zM8 20h1v1h-1zM10 20h1v1h-1zM14 20h1v1h-1zM15 20h1v1h-1zM16 20h1v1h-1zM20 20h1v1h-1zM21 20h1v1h-1zM22 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM8 21h1v1h-1zM10 21h1v1h-1zM11 21h1v1h-1zM12 21h1v1h-1zM14 21h1v1h-1zM15 21h1v1h-1zM20 21h1v1h-1zM24 21h1v1h-1zM26 21h1v1h-1zM27 21h1v1h-1zM28 21h1v1h-1zM0 22h1v1h-1zM1 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM5 22h1v1h-1zM6 22h1v1h-1zM9 22h1v1h-1zM13 22h1v1h-1zM19 22h1v1h-1zM20 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM25 22h1v1h-1zM27 22h1v1h-1zM28 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM9 23h1v1h-1zM12 23h1v1h-1zM15 23h1v1h-1zM17 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM20 23h1v1h-1zM24 23h1v1h-1zM25 23h1v1h-1zM28 23h1v1h-1zM0 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM9 24h1v1h-1zM11 24h1v1h-1zM12 24h1v1h-1zM20 24h1v1h-1zM21 24h1v1h-1zM22 24h1v1h-1zM23 24h1v1h-1zM24 24h1v1h-1zM27 24h1v1h-1zM0 25h1v1h-1zM2 25h1v1h-1zM3 25h1v1h-1zM4 25h1v1h-1zM6 25h1v1h-1zM9 25h1v1h-1zM10 25h1v1h-1zM11 25h1v1h-1zM13 25h1v1h-1zM20 25h1v1h-1zM23 25h1v1h-1zM24 25h1v1h-1zM26 25h1v1h-1zM0 26h1v1h-1zM2 26h1v1h-1zM3 26h1v1h-1zM4 26h1v1h-1zM6 26h1v1h-1zM8 26h1v1h-1zM10 26h1v1h-1zM13 26h1v1h-1zM14 26h1v1h-1zM17 26h1v1h-1zM19 26h1v1h-1zM21 26h1v1h-1zM23 26h1v1h-1zM24 26h1v1h-1zM25 26h1v1h-1zM28 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM14 27h1v1h-1zM17 27h1v1h-1zM19 27h1v1h-1zM20 27h1v1h-1zM21 27h1v1h-1zM24 27h1v1h-1zM27 27h1v1h-1zM0 28h1v1h-1zM1 28h1v1h-1zM2 28h1v1h-1zM3 28h1v1h-1zM4 28h1v1h-1zM5 28h1v1h-1zM6 28h1v1h-1zM8 28h1v1h-1zM10 28h1v1h-1zM11 28h1v1h-1zM13 28h1v1h-1zM16 28h1v1h-1zM20 28h1v1h-1zM23 28h1v1h-1zM24 28h1v1h-1zM25 28h1v1h-1zM27 28h1v1h-1zM28 28h1v1h-1z" fill="#14171C" shape-rendering="crispEdges"/></svg><span class="wa-txt"><small>WhatsApp</small><strong><span lang="bg">Сканирай кода</span><span lang="en">Scan the code</span></strong><em><span lang="bg">или натисни тук от телефона</span><span lang="en">or tap here on your phone</span></em></span></a>
+      <a class="tb last" href="https://github.com/waitingboy-collab" target="_blank" rel="noopener"><small>GitHub</small><strong>waitingboy-collab</strong></a>
+      <a class="tb r last" href="https://www.youtube.com/@digitalsolution-o6q" target="_blank" rel="noopener"><small><span lang="bg">Кадри от дрон</span><span lang="en">Drone footage</span></small><strong>YouTube</strong></a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap"><span lang="bg">Тази страница е направена с AI. Всяко изречение в нея е проверено от човек.</span><span lang="en">This page was made with AI. Every sentence on it was checked by a human.</span></div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  var root = document.documentElement, body = document.body;
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var NS = 'http://www.w3.org/2000/svg';
+  function store(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  function read(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+
+  /* ---------- Ръчно рисувани задрасквания ---------- */
+  function rng(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function wobble(x1, x2, y, r){
+    var pts = [], step = 34, n = Math.max(2, Math.round((x2 - x1) / step));
+    for (var i = 0; i <= n; i++){ pts.push([x1 + (x2 - x1) * i / n, y + (r() - .5) * 2.6 + (i / n - .5) * -1.6]); }
+    var d = 'M' + pts[0][0].toFixed(1) + ' ' + pts[0][1].toFixed(1);
+    for (var k = 1; k < pts.length - 1; k++){
+      var mx = (pts[k][0] + pts[k+1][0]) / 2, my = (pts[k][1] + pts[k+1][1]) / 2;
+      d += ' Q' + pts[k][0].toFixed(1) + ' ' + pts[k][1].toFixed(1) + ' ' + mx.toFixed(1) + ' ' + my.toFixed(1);
+    }
+    var last = pts[pts.length - 1];
+    return d + ' L' + last[0].toFixed(1) + ' ' + last[1].toFixed(1);
+  }
+  function drawStrikes(host, seed){
+    var old = host.querySelector(':scope > .strike-svg'); if (old) old.remove();
+    var hr = host.getBoundingClientRect();
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'strike-svg pen'); svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('width', hr.width); svg.setAttribute('height', hr.height);
+    var r = rng(seed || 7), idx = 0;
+    host.querySelectorAll('.del').forEach(function(del){
+      Array.prototype.forEach.call(del.getClientRects(), function(rc){
+        if (rc.width < 4) return;
+        var p = document.createElementNS(NS, 'path');
+        p.setAttribute('d', wobble(rc.left - hr.left - 4, rc.right - hr.left + 4, rc.top - hr.top + rc.height * .56, r));
+        p.setAttribute('pathLength', '1');
+        p.style.transitionDelay = (idx * 0.38) + 's';
+        svg.appendChild(p); idx++;
+      });
+    });
+    host.appendChild(svg);
+  }
+  var hosts = Array.prototype.slice.call(document.querySelectorAll('.strike-host'));
+  function redrawAll(){ hosts.forEach(function(h, i){ if (h.id === 'draft' && !hero.classList.contains('typed')) return; drawStrikes(h, i * 31 + 11); }); }
+
+  /* ---------- Език ---------- */
+  var langBtns = document.querySelectorAll('.lang button');
+  function setLang(l){
+    root.lang = l;
+    langBtns.forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.lang === l)); });
+    document.title = l === 'bg' ? 'Rado skills | Радослав Чакъров' : 'Rado skills | Radoslav Chakarov';
+    var mn = document.querySelector('.mark-name'); if (mn) mn.textContent = l === 'bg' ? 'Радослав Чакъров' : 'Radoslav Chakarov';
+    var ps = document.getElementById('penSwitch'); if (ps) ps.setAttribute('aria-label', l === 'bg' ? 'Червен химикал' : 'Red pen');
+    store('lang', l);
+  }
+  langBtns.forEach(function(b){ b.addEventListener('click', function(){ setLang(b.dataset.lang); finishHero(); redrawAll(); }); });
+  var saved = read('lang');
+  setLang(saved === 'en' || saved === 'bg' ? saved : ((navigator.language || '').toLowerCase().indexOf('bg') === 0 ? 'bg' : 'en'));
+
+  /* ---------- Червен химикал ---------- */
+  var sw = document.getElementById('penSwitch');
+  function setPen(on){ body.classList.toggle('pen-off', !on); sw.setAttribute('aria-checked', String(on)); store('pen', on ? '1' : '0'); }
+  sw.addEventListener('click', function(){ setPen(sw.getAttribute('aria-checked') !== 'true'); });
+  setPen(read('pen') !== '0');
+
+  /* ---------- Hero: машината пише, химикалът поправя ---------- */
+  var hero = document.querySelector('.hero');
+  var draft = document.getElementById('draft');
+  var timers = [], nodes = [];
+  function restoreText(){ nodes.forEach(function(o){ o.node.nodeValue = o.text; }); }
+  function finishHero(){
+    timers.forEach(clearTimeout); timers = [];
+    restoreText();
+    hero.classList.add('typed', 'written');
+    draft.classList.add('drawn');
+  }
+  function startHero(){
+    var active = draft.querySelector('[lang="' + root.lang + '"] .ai');
+    var w = document.createTreeWalker(active, NodeFilter.SHOW_TEXT, null), n;
+    while ((n = w.nextNode())) nodes.push({ node:n, text:n.nodeValue });
+    nodes.forEach(function(o){ o.node.nodeValue = ''; });
+    var i = 0, j = 0;
+    (function type(){
+      if (i >= nodes.length){
+        hero.classList.add('typed');
+        drawStrikes(draft, 11);
+        timers.push(setTimeout(function(){ draft.classList.add('drawn'); }, 380));
+        timers.push(setTimeout(function(){ hero.classList.add('written'); }, 900));
+        return;
+      }
+      var o = nodes[i]; j++;
+      o.node.nodeValue = o.text.slice(0, j);
+      if (j >= o.text.length){ i++; j = 0; }
+      timers.push(setTimeout(type, 22 + Math.random() * 34));
+    })();
+  }
+
+  /* ---------- Корекциите се „проверяват“ при скрол ---------- */
+  var cases = document.querySelectorAll('.case');
+  function initCases(){
+    hosts.forEach(function(h, i){ if (h.id !== 'draft') drawStrikes(h, i * 31 + 11); });
+    if (reduce || !('IntersectionObserver' in window)){ cases.forEach(function(c){ c.classList.add('drawn'); }); return; }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('drawn'); io.unobserve(e.target); } });
+    }, { rootMargin:'0px 0px -25% 0px', threshold:.2 });
+    cases.forEach(function(c){ io.observe(c); });
+  }
+
+  /* ---------- Филтър на проектите ---------- */
+  var items = document.querySelectorAll('#index .p');
+  var chips = document.querySelectorAll('.chip');
+  document.querySelectorAll('[data-count]').forEach(function(b){
+    var f = b.dataset.count;
+    b.textContent = f === 'all' ? items.length : document.querySelectorAll('#index .p[data-cat="' + f + '"]').length;
+  });
+  chips.forEach(function(c){
+    c.addEventListener('click', function(){
+      var f = c.dataset.f;
+      chips.forEach(function(x){ x.setAttribute('aria-pressed', String(x === c)); });
+      items.forEach(function(it){ it.hidden = !(f === 'all' || it.dataset.cat === f); });
+    });
+  });
+
+  /* ---------- Червената линия на прогреса ---------- */
+  var bar = document.querySelector('.progress'), ticking = false;
+  function onScroll(){
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(function(){
+      var max = document.documentElement.scrollHeight - innerHeight;
+      bar.style.transform = 'scaleY(' + (max > 0 ? scrollY / max : 0) + ')';
+      ticking = false;
+    });
+  }
+  addEventListener('scroll', onScroll, { passive:true }); onScroll();
+
+  /* ---------- Пренареждане при промяна на размера/шрифта ---------- */
+  var rt; addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+
+  function boot(){
+    initCases();
+    if (reduce){ finishHero(); redrawAll(); } else { timers.push(setTimeout(startHero, 450)); }
+  }
+  if (document.fonts && document.fonts.ready){ document.fonts.ready.then(boot); } else { addEventListener('load', boot); }
+})();
+</script>
+</body>
+</html>
