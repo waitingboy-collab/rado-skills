@@ -308,6 +308,32 @@ footer{padding:28px 0 56px;color:var(--muted);font-size:.9rem}
   .caret-blink{display:none}
 }
 
+/* ===================== 3D КАРТИ (изпъкване) ===================== */
+html.fx body{overflow-x:clip}
+html.fx .tilt{position:relative;transform-style:preserve-3d;transition:opacity .7s ease,transform .5s cubic-bezier(.2,.7,.2,1),box-shadow .5s ease}
+html.fx .tilt.tilting,
+html.fx .tilt.rolling:not(.reveal),
+html.fx .tilt.rolling.is-visible{
+  transform:perspective(1000px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) rotate(var(--base,0deg)) translateY(var(--lift,0px)) scale(var(--sc,1));
+}
+html.fx .tilt.tilting{
+  --lift:-8px;--sc:1.015;z-index:2;
+  transition:opacity .7s ease,transform .2s cubic-bezier(.2,.7,.2,1),box-shadow .2s ease;
+  box-shadow:var(--sx,0px) calc(var(--sy,0px) + 28px) 50px -14px var(--tilt-shadow),0 2px 6px rgba(0,0,0,.05);
+}
+html.fx .tilt h3{transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+html.fx .tilt.tilting > h3,
+html.fx .tilt.tilting > * > h3{transform:translateZ(30px)}
+html.fx .tilt .glare{
+  position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;transition:opacity .35s ease;
+  background:radial-gradient(circle at var(--gx,50%) var(--gy,0%),rgba(255,255,255,.42),rgba(255,255,255,0) 42%,var(--tilt-edge) 100%);
+}
+html.fx .tilt.tilting .glare{opacity:1}
+html.fx .tilt.rolling .glare{opacity:.3}
+:root{--tilt-shadow:rgba(30,42,64,.28);--tilt-edge:rgba(30,42,64,.07)}
+.st-me{--base:-.6deg}
+.case:nth-child(odd) .sheet{--base:-.5deg}
+.case:nth-child(even) .sheet{--base:.45deg}
 /* ===================== WEBGL ВАРИАНТ ===================== */
 #gl-paper{position:fixed;inset:0;width:100%;height:100vh;height:100lvh;z-index:-1;pointer-events:none;display:block}
 html.webgl .bar{background:rgba(243,245,244,.78)}
@@ -920,7 +946,7 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
   deriv ? '#extension GL_OES_standard_derivatives : enable\n#define HAS_D 1' : '',
   'precision highp float;',
   'uniform vec2 uRes; uniform float uDpr; uniform float uTime; uniform float uScroll;',
-  'uniform vec2 uMouse; uniform float uLens; uniform float uPen; uniform float uLife;',
+  'uniform vec2 uMouse; uniform vec2 uLight; uniform float uCross; uniform float uLens; uniform float uPen; uniform float uLife;',
   'uniform int uCount; uniform vec4 uPts[' + MAXP + '];',
   'const vec3 PAPER = vec3(.953,.961,.957);',
   'const vec3 MACHINE = vec3(.267,.345,.478);',
@@ -948,18 +974,44 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
   '  float aw = .03;',
   '#endif',
   '  o = over(o, MACHINE, (1. - smoothstep(aw*.4, aw*1.2, cd)) * .07);',
-  // лупа: в кръга хартията се покрива и мрежата се рисува увеличена
+  // релеф: контурите са релефни хребети, осветени от показалеца (или от бавно обикаляща светлина)
+  '#ifdef HAS_D',
+  '  float ridge = 1. - smoothstep(0., .13, cd);',
+  '  float Hh = ridge*.22 + n*.8;',
+  '  float K = 7.*uDpr;',
+  '  vec3 nn = normalize(vec3(-dFdx(Hh)*K, -dFdy(Hh)*K, 1.));',
+  '  vec2 lp = vec2(uLight.x*uDpr, uRes.y - uLight.y*uDpr);',
+  '  vec3 L = normalize(vec3(lp - gl_FragCoord.xy, 260.*uDpr));',
+  '  float shd = dot(nn, L) - L.z;',
+  '  o = over(o, vec3(1.), clamp(shd*.9, 0., .20));',
+  '  o = over(o, MACHINE, clamp(-shd*.5, 0., .07));',
+  '#endif',
+  // изпъкване: под показалеца хартията се издува като купол — мрежата се разтяга
+  // в средата и се слива с истинската мрежа по ръба
   '  vec2 dm = v - uMouse; float rr = length(dm);',
-  '  if (uLens > .01 && rr < 170.){',
-  '    float mask = uLens * (1. - smoothstep(118., 150., rr));',
-  '    vec2 g = uMouse + dm*.72 + vec2(0., uScroll);',
-  '    o = over(o, PAPER, mask);',
-  '    o = over(o, MACHINE, mask * gridLine(g, 24., 1., px) * .10);',
-  '    o = over(o, MACHINE, mask * gridLine(g, 120., 1., px) * .13);',
+  '  float R = 150.;',
+  '  if (uLens > .01 && rr < R + 26.){',
+  '    float f = min(rr / R, 1.);',
+  '    float inside = 1. - smoothstep(R - 2., R, rr);',
+  '    vec2 g = uMouse + dm * mix(1., .52 + .48*f*f, uLens) + vec2(0., uScroll) - .5;',
+  '    o = over(o, PAPER, inside);',
+  '    o = over(o, MACHINE, inside * gridLine(g, 24., 1., px) * .05);',
+  '    o = over(o, MACHINE, inside * gridLine(g, 120., 1., px) * .09);',
+  // осветяване на купола: светло горе-ляво, сянка долу-дясно, отблясък
+  '    vec3 dn = normalize(vec3(dm / R * 1.15, sqrt(max(1. - f*f, 0.)) + .05));',
+  '    vec3 Ld = normalize(vec3(-.45, -.6, .66));',
+  '    float ds = (dot(dn, Ld) - Ld.z) * uLens;',
+  '    o = over(o, vec3(1.), inside * clamp(ds*.9, 0., .55));',
+  '    o = over(o, MACHINE, inside * clamp(-ds*.45, 0., .22));',
+  '    float sp = pow(max(dot(dn, normalize(Ld + vec3(0.,0.,1.))), 0.), 36.);',
+  '    o = over(o, vec3(1.), inside * sp * .55 * uLens);',
+  // сянка от купола върху хартията (долу-дясно)
+  '    float outer = smoothstep(R + 24., R, rr) * (1. - inside);',
+  '    float side = clamp(dot(dm / max(rr, 1.), vec2(.6, .8)), 0., 1.);',
+  '    o = over(o, MACHINE, outer * side * .16 * uLens);',
   '    float ring = 1. - smoothstep(.6, .6+px*1.5, abs(rr - 22.));',
   '    float crs = (1. - smoothstep(.45, .45+px, min(abs(dm.x), abs(dm.y)))) * step(30., rr) * (1. - smoothstep(48., 64., rr));',
-  '    float edge = (1. - smoothstep(.5, .5+px*1.5, abs(rr - 150.))) * .18;',
-  '    o = over(o, MACHINE, (ring*.35 + crs*.30 + edge) * uLens);',
+  '    o = over(o, MACHINE, (ring*.35 + crs*.30) * uLens * uCross);',
   '  }',
   // червено мастило (в координати на страницата)
   '  if (uCount > 1 && uPen > .01){',
@@ -989,7 +1041,7 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
   var loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  var U = {}; ['uRes','uDpr','uTime','uScroll','uMouse','uLens','uPen','uLife','uCount','uPts'].forEach(function(n){ U[n] = gl.getUniformLocation(pr, n); });
+  var U = {}; ['uRes','uDpr','uTime','uScroll','uMouse','uLight','uCross','uLens','uPen','uLife','uCount','uPts'].forEach(function(n){ U[n] = gl.getUniformLocation(pr, n); });
   gl.clearColor(0, 0, 0, 0);
   root.classList.add('webgl');
 
@@ -1018,12 +1070,19 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
   addEventListener('pointermove', function(e){
     lastHuman = now();
     if (e.pointerType === 'mouse' || e.pointerType === 'pen'){
-      mouse.x = e.clientX; mouse.y = e.clientY; lensTarget = 1; force = true;
+      touching = false; mouse.x = e.clientX; mouse.y = e.clientY; lensTarget = 1; force = true;
       if (penOn()) addPt(e.clientX, e.clientY + scrollY, false);
       kick();
     }
   }, { passive:true });
   document.addEventListener('mouseleave', function(){ lensTarget = 0; kick(); });
+  // докосване: куполът се издува под пръста (без мастило — то е за мишката и автопилота)
+  var touching = false, lightX = -999, lightY = -999;
+  function onTouch(e){ var tt = e.touches && e.touches[0]; if (!tt) return; touching = true; mouse.x = tt.clientX; mouse.y = tt.clientY; lensTarget = 1; force = true; kick(); }
+  addEventListener('touchstart', onTouch, { passive:true });
+  addEventListener('touchmove', onTouch, { passive:true });
+  addEventListener('touchend', function(e){ if (!e.touches || !e.touches.length){ lensTarget = 0; kick(); } }, { passive:true });
+  addEventListener('touchcancel', function(){ lensTarget = 0; kick(); }, { passive:true });
   addEventListener('scroll', function(){ lastScroll = now(); if (lens > .01 || pts.length) kick(); }, { passive:true });
 
   /* ---- автопилот: химикалът сам „проверява“ ---- */
@@ -1088,6 +1147,12 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
       gl.uniform1f(U.uTime, reduce ? 0 : t - t0);
       gl.uniform1f(U.uScroll, scrollY);
       gl.uniform2f(U.uMouse, mouse.x, mouse.y);
+      // светлината: от показалеца, иначе бавно обикаля
+      var lt = reduce ? 0 : (t - t0) * .25, vw = cv.clientWidth, vh = cv.clientHeight;
+      var ox = vw * .5 + Math.cos(lt) * vw * .45, oy = vh * .4 + Math.sin(lt) * vh * .35;
+      lightX += ((lens > .05 ? mouse.x : ox) - lightX) * .2; lightY += ((lens > .05 ? mouse.y : oy) - lightY) * .2;
+      gl.uniform2f(U.uLight, lightX, lightY);
+      gl.uniform1f(U.uCross, touching ? 0 : 1);
       gl.uniform1f(U.uLens, lens); gl.uniform1f(U.uPen, pen); gl.uniform1f(U.uLife, LIFE);
       gl.uniform1i(U.uCount, c); gl.uniform4fv(U.uPts, buf);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -1099,6 +1164,89 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
   document.addEventListener('visibilitychange', function(){ if (!document.hidden){ force = true; kick(); } });
   new MutationObserver(function(){ force = true; kick(); }).observe(body, { attributes:true, attributeFilter:['class'] });
   cv.addEventListener('webglcontextlost', function(e){ e.preventDefault(); root.classList.remove('webgl'); cv.style.display = 'none'; });
+})();
+</script>
+<script>
+/* ---------- 3D карти: изпъкват към посетителя ----------
+   • С мишка: картата се накланя към показалеца, повдига се, заглавието излиза
+     напред, а по нея минава отблясък.
+   • На телефон: картите леко се превъртат като барабан, докато минават през екрана.
+   • При prefers-reduced-motion нищо не се движи. */
+(function(){
+  'use strict';
+  var SELECTOR = '.stage, .sheet, .dw';
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !('IntersectionObserver' in window)) return;
+  var fine = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+  var cards = Array.prototype.slice.call(document.querySelectorAll(SELECTOR));
+  if (!cards.length) return;
+  document.documentElement.classList.add('fx');
+
+  cards.forEach(function(c){
+    c.classList.add('tilt');
+    var g = document.createElement('span');
+    g.className = 'glare'; g.setAttribute('aria-hidden', 'true');
+    c.appendChild(g);
+  });
+
+  function set(c, rx, ry, gx, gy){
+    c.style.setProperty('--rx', rx.toFixed(2) + 'deg');
+    c.style.setProperty('--ry', ry.toFixed(2) + 'deg');
+    c.style.setProperty('--gx', gx.toFixed(1) + '%');
+    c.style.setProperty('--gy', gy.toFixed(1) + '%');
+    c.style.setProperty('--sx', (-ry * 1.4).toFixed(1) + 'px');
+    c.style.setProperty('--sy', (rx * 1.4).toFixed(1) + 'px');
+  }
+
+  if (fine){
+    cards.forEach(function(c){
+      var raf = 0, ex = 0, ey = 0;
+      var big = c.offsetWidth > 700;          // широките карти се накланят по-малко
+      var MAX = big ? 5 : 10;
+      c.addEventListener('pointerenter', function(){ c.classList.add('tilting'); });
+      c.addEventListener('pointermove', function(e){
+        ex = e.clientX; ey = e.clientY;
+        if (raf) return;
+        raf = requestAnimationFrame(function(){
+          raf = 0;
+          var r = c.getBoundingClientRect();
+          var x = Math.min(1, Math.max(0, (ex - r.left) / r.width));
+          var y = Math.min(1, Math.max(0, (ey - r.top) / r.height));
+          set(c, (.5 - y) * MAX, (x - .5) * MAX, x * 100, y * 100);
+        });
+      });
+      c.addEventListener('pointerleave', function(){
+        if (raf){ cancelAnimationFrame(raf); raf = 0; }
+        c.classList.remove('tilting'); set(c, 0, 0, 50, 0);
+      });
+    });
+    return;
+  }
+
+  // телефон: „барабан“ при скрол — само за видимите карти; първо четем, после пишем
+  var vis = [];
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      var i = vis.indexOf(e.target);
+      if (e.isIntersecting && i < 0) vis.push(e.target);
+      if (!e.isIntersecting && i >= 0) vis.splice(i, 1);
+    });
+    queue();
+  }, { rootMargin: '10% 0px' });
+  cards.forEach(function(c){ c.classList.add('rolling'); io.observe(c); });
+  var pending = false;
+  function update(){
+    pending = false;
+    var vh = window.innerHeight, rects = vis.map(function(c){ return c.getBoundingClientRect(); });
+    vis.forEach(function(c, i){
+      var r = rects[i];
+      var k = Math.max(-1, Math.min(1, ((r.top + r.height / 2) - vh / 2) / vh)); // -1 горе … 1 долу
+      set(c, -k * 5, 0, 50, 50 + k * 70);
+    });
+  }
+  function queue(){ if (!pending){ pending = true; requestAnimationFrame(update); } }
+  addEventListener('scroll', queue, { passive: true });
+  addEventListener('resize', queue);
 })();
 </script>
 </body>
