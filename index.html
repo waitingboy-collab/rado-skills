@@ -307,6 +307,12 @@ footer{padding:28px 0 56px;color:var(--muted);font-size:.9rem}
   .js .write{clip-path:none}
   .caret-blink{display:none}
 }
+
+/* ===================== WEBGL ВАРИАНТ ===================== */
+#gl-paper{position:fixed;inset:0;width:100%;height:100vh;height:100lvh;z-index:-1;pointer-events:none;display:block}
+html.webgl body{background-image:none}
+html.webgl .bar{background:rgba(243,245,244,.78)}
+html.webgl .p:hover{background:rgba(255,255,255,.82)}
 </style>
 </head>
 <body>
@@ -885,6 +891,202 @@ footer{padding:28px 0 56px;color:var(--muted);font-size:.9rem}
     if (reduce){ finishHero(); redrawAll(); } else { timers.push(setTimeout(startHero, 450)); }
   }
   if (document.fonts && document.fonts.ready){ document.fonts.ready.then(boot); } else { addEventListener('load', boot); }
+})();
+</script>
+<script>
+/* ---------- WebGL: жива хартия за чертеж + следа от червения химикал ----------
+   • Мрежата се рисува от шейдъра и се движи заедно със страницата.
+   • Около мишката мрежата се увеличава като под лупа, с мерник като в CAD.
+   • Едва видими контури като траектории на CNC инструмент бавно текат.
+   • Мишката оставя червена мастилена следа, която избледнява.
+     Без мишка (телефон) химикалът сам слага отметки, кръгчета и подчертавания.
+   • Ключът „Червен химикал“ спира и мастилото.
+   Ако няма WebGL, остава старата CSS мрежа. */
+(function(){
+  'use strict';
+  var root = document.documentElement, body = document.body;
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var finePointer = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  var cv = document.createElement('canvas');
+  cv.id = 'gl-paper'; cv.setAttribute('aria-hidden', 'true');
+  body.insertBefore(cv, body.firstChild);
+  var gl = cv.getContext('webgl', { antialias:false, alpha:false, powerPreference:'low-power' });
+  if (!gl){ cv.remove(); return; }
+
+  var MAXP = 64, LIFE = 1.9;
+  var vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+  var deriv = gl.getExtension('OES_standard_derivatives');
+  var fs = [
+  deriv ? '#extension GL_OES_standard_derivatives : enable\n#define HAS_D 1' : '',
+  'precision highp float;',
+  'uniform vec2 uRes; uniform float uDpr; uniform float uTime; uniform float uScroll;',
+  'uniform vec2 uMouse; uniform float uLens; uniform float uPen; uniform float uLife;',
+  'uniform int uCount; uniform vec4 uPts[' + MAXP + '];',
+  'const vec3 PAPER = vec3(.953,.961,.957);',      // #F3F5F4
+  'const vec3 MACHINE = vec3(.267,.345,.478);',    // #44587A
+  'const vec3 PEN = vec3(.784,.137,.173);',        // #C8232C
+  'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }',
+  'float noise(vec2 p){ vec2 i=floor(p), f=fract(p); vec2 u=f*f*(3.-2.*f);',
+  '  return mix(mix(hash(i),hash(i+vec2(1.,0.)),u.x), mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),u.x), u.y); }',
+  'float fbm(vec2 p){ float v=0., a=.5; for(int i=0;i<4;i++){ v+=a*noise(p); p=p*2.02+11.3; a*=.5; } return v; }',
+  // линия с дебелина w (CSS px) през всеки „step“ px
+  'float gridLine(vec2 c, float step, float w, float px){',
+  '  vec2 d = abs(mod(c + .5*step, step) - .5*step);',
+  '  vec2 l = 1. - smoothstep(.5*w - .5*px, .5*w + .5*px, d);',
+  '  return max(l.x, l.y); }',
+  'float seg(vec2 p, vec2 a, vec2 b){ vec2 pa=p-a, ba=b-a; float h=clamp(dot(pa,ba)/max(dot(ba,ba),1e-4),0.,1.); return length(pa-ba*h); }',
+  'void main(){',
+  '  float px = 1./uDpr;',
+  '  vec2 v = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uDpr;',   // CSS px в прозореца
+  '  vec2 page = v + vec2(0., uScroll);',
+  // лупа около мишката
+  '  vec2 dm = v - uMouse; float r2 = dot(dm,dm);',
+  '  float lensK = uLens * .22 * exp(-r2/(150.*150.));',
+  '  vec2 g = uMouse + dm*(1. - lensK) + vec2(0., uScroll);',
+  '  vec3 col = PAPER;',
+  // CNC контури
+  '  float n = fbm(g/360. + vec2(uTime*.012, -uTime*.008));',
+  '  float k = n*14.; float cd = .5 - abs(fract(k)-.5);',
+  '#ifdef HAS_D',
+  '  float aw = fwidth(k)*.9;',
+  '#else',
+  '  float aw = .03;',
+  '#endif',
+  '  float cl = 1. - smoothstep(aw*.4, aw*1.2, cd);',
+  '  col = mix(col, MACHINE, cl*.075);',
+  // мрежата: 24px и 120px, като в CSS
+  '  col = mix(col, MACHINE, gridLine(g, 24., 1., px)*(.040 + lensK*.10));',
+  '  col = mix(col, MACHINE, gridLine(g, 120., 1., px)*(.075 + lensK*.18));',
+  // мерник
+  '  float rr = sqrt(r2);',
+  '  float ring = 1. - smoothstep(.6, .6+px*1.5, abs(rr - 22.));',
+  '  float crs = (1. - smoothstep(.45, .45+px, min(abs(dm.x), abs(dm.y)))) * step(30., rr) * (1. - smoothstep(48., 64., rr));',
+  '  col = mix(col, MACHINE, (ring*.35 + crs*.30) * uLens);',
+  // червено мастило
+  '  float ink = 0.;',
+  '  for (int i = 0; i < ' + (MAXP - 1) + '; i++){',
+  '    if (i >= uCount - 1) break;',
+  '    vec4 a = uPts[i], b = uPts[i+1];',
+  '    if (b.w > .5) continue;',                      // начало на нова линия
+  '    float age = max(a.z, b.z) / uLife; if (age >= 1.) continue;',
+  '    float w = mix(2.2, .7, age);',
+  '    float d = seg(page, a.xy, b.xy);',
+  '    float c = (1. - smoothstep(w - px, w + px, d)) * pow(1. - age, 1.4);',
+  '    ink = max(ink, c);',
+  '  }',
+  '  col = mix(col, PEN, ink * .92 * uPen);',
+  '  gl_FragColor = vec4(col, 1.);',
+  '}'].join('\n');
+
+  function sh(t, s){ var o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o);
+    if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)){ console.warn(gl.getShaderInfoLog(o)); return null; } return o; }
+  var a = sh(gl.VERTEX_SHADER, vs), b = sh(gl.FRAGMENT_SHADER, fs);
+  if (!a || !b){ cv.remove(); return; }
+  var pr = gl.createProgram(); gl.attachShader(pr, a); gl.attachShader(pr, b); gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)){ cv.remove(); return; }
+  gl.useProgram(pr);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  var loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  var U = {}; ['uRes','uDpr','uTime','uScroll','uMouse','uLens','uPen','uLife','uCount','uPts'].forEach(function(n){ U[n] = gl.getUniformLocation(pr, n); });
+  root.classList.add('webgl');
+
+  var W = 0, H = 0, dpr = 1;
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.max(1, Math.round(cv.clientWidth * dpr)); H = Math.max(1, Math.round(cv.clientHeight * dpr));
+    if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; gl.viewport(0, 0, W, H); }
+    kick();
+  }
+
+  /* ---- мастилото ---- */
+  var pts = [], buf = new Float32Array(MAXP * 4);
+  function now(){ return performance.now() / 1000; }
+  function addPt(x, y, start, t){
+    var last = pts[pts.length - 1];
+    if (!start && last){ var dx = x - last.x, dy = y - last.y; if (dx*dx + dy*dy < 25) return; if (dx*dx + dy*dy > 140*140) start = true; }
+    pts.push({ x:x, y:y, t:t || now(), s:start ? 1 : 0 });
+    if (pts.length > MAXP) pts.shift();
+    kick();
+  }
+  function penOn(){ return !body.classList.contains('pen-off'); }
+
+  var mouse = { x:-999, y:-999 }, lens = 0, lensTarget = 0, lastHuman = -10;
+  addEventListener('pointermove', function(e){
+    lastHuman = now();
+    if (e.pointerType === 'mouse' || e.pointerType === 'pen'){
+      mouse.x = e.clientX; mouse.y = e.clientY; lensTarget = 1;
+      if (penOn()) addPt(e.clientX, e.clientY + scrollY, false);
+    }
+  }, { passive:true });
+  document.addEventListener('mouseleave', function(){ lensTarget = 0; });
+  addEventListener('scroll', kick, { passive:true });
+
+  /* ---- автопилот: химикалът сам „проверява“ ---- */
+  var shapes = {
+    check: function(u){ return u < .35 ? [u/.35*.32, .55 + u/.35*.35] : [.32 + (u-.35)/.65*.68, .9 - (u-.35)/.65*.9]; },
+    loop:  function(u){ var a = u * Math.PI * 2.15 - 1.2; return [.5 + Math.cos(a)*.5*(1 + u*.06), .5 + Math.sin(a)*.32]; },
+    wave:  function(u){ return [u, .5 + Math.sin(u * Math.PI * 3) * .12 + u*.08]; }
+  };
+  var queue = [];
+  function scribble(kind, cx, cy, size, t0){
+    var f = shapes[kind], n = kind === 'check' ? 16 : 30, dur = kind === 'check' ? .45 : .8;
+    var w = kind === 'check' ? size*.7 : size*1.4, h = kind === 'wave' ? size*.5 : size*.8;
+    var jit = (Math.random() - .5) * .25;
+    for (var i = 0; i <= n; i++){
+      var u = i / n, q = f(u);
+      var x = (q[0] - .5) * w, y = (q[1] - .5) * h;
+      var rx = x * Math.cos(jit) - y * Math.sin(jit), ry = x * Math.sin(jit) + y * Math.cos(jit);
+      queue.push({ x:cx + rx, y:cy + ry, t:t0 + u*dur, s:i === 0 });
+    }
+  }
+  var nextAuto = now() + 2.5;
+  function autopilot(t){
+    if (reduce || !penOn() || document.hidden) return;
+    if (t - lastHuman < 4 && finePointer) return;
+    if (t < nextAuto) return;
+    nextAuto = t + 2.6 + Math.random() * 2.2;
+    var kinds = ['check', 'loop', 'wave', 'check'];
+    var vw = cv.clientWidth, vh = cv.clientHeight;
+    var x = vw < 700 ? vw * (.15 + Math.random()*.7) : (Math.random() < .5 ? vw * (.03 + Math.random()*.12) : vw * (.85 + Math.random()*.12));
+    scribble(kinds[(Math.random()*kinds.length)|0], x, scrollY + vh * (.18 + Math.random()*.64), vw < 700 ? 54 : 70, t);
+  }
+  // докосване по хартията = отметка
+  addEventListener('pointerdown', function(e){
+    if (e.pointerType !== 'touch' || !penOn() || reduce) return;
+    if (e.target.closest && e.target.closest('a,button,input,label,.sheet,.stage,.dw,.titleblock,.bom')) return;
+    lastHuman = now(); nextAuto = lastHuman + 3;
+    scribble('check', e.clientX, e.clientY + scrollY, 46, now());
+  }, { passive:true });
+
+  /* ---- кадър ---- */
+  var raf = 0, t0 = now(), pen = penOn() ? 1 : 0;
+  function frame(){
+    raf = 0;
+    var t = now();
+    autopilot(t);
+    while (queue.length && queue[0].t <= t){ var q = queue.shift(); addPt(q.x, q.y, q.s, q.t); }
+    while (pts.length && t - pts[0].t > LIFE) pts.shift();
+    lens += (lensTarget - lens) * (reduce ? 1 : .12);
+    pen += ((penOn() ? 1 : 0) - pen) * (reduce ? 1 : .15);
+    var c = pts.length;
+    for (var i = 0; i < c; i++){ var p = pts[i]; buf[i*4] = p.x; buf[i*4+1] = p.y; buf[i*4+2] = t - p.t; buf[i*4+3] = p.s; }
+    gl.uniform2f(U.uRes, W, H); gl.uniform1f(U.uDpr, dpr);
+    gl.uniform1f(U.uTime, reduce ? 0 : t - t0);
+    gl.uniform1f(U.uScroll, scrollY);
+    gl.uniform2f(U.uMouse, mouse.x, mouse.y);
+    gl.uniform1f(U.uLens, lens); gl.uniform1f(U.uPen, pen); gl.uniform1f(U.uLife, LIFE);
+    gl.uniform1i(U.uCount, c); gl.uniform4fv(U.uPts, buf);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    var busy = c > 0 || queue.length || Math.abs(lens - lensTarget) > .01 || Math.abs(pen - (penOn() ? 1 : 0)) > .01;
+    if (!document.hidden && (!reduce || busy)) raf = requestAnimationFrame(frame);
+  }
+  function kick(){ if (!raf && !document.hidden) raf = requestAnimationFrame(frame); }
+  resize(); addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) kick(); });
+  new MutationObserver(kick).observe(body, { attributes:true, attributeFilter:['class'] });
+  cv.addEventListener('webglcontextlost', function(e){ e.preventDefault(); root.classList.remove('webgl'); cv.style.display = 'none'; });
 })();
 </script>
 </body>
