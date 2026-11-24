@@ -334,6 +334,14 @@ html.fx .tilt.rolling .glare{opacity:.3}
 .st-me{--base:-.6deg}
 .case:nth-child(odd) .sheet{--base:-.5deg}
 .case:nth-child(even) .sheet{--base:.45deg}
+/* ===================== НАКЛОН НА ТЕЛЕФОНА ===================== */
+.tilt-ask{position:fixed;left:12px;bottom:calc(var(--tilt-ask-bottom,16px) + env(safe-area-inset-bottom));z-index:80;display:flex;align-items:stretch;
+  background:var(--ink);color:#fff;border-radius:999px;box-shadow:0 10px 30px -8px rgba(0,0,0,.35);animation:tiltAskIn .5s cubic-bezier(.2,.7,.2,1) both;max-width:calc(100vw - 24px)}
+.tilt-ask button{font:600 14px/1.2 inherit;font-family:inherit;color:inherit;background:none;border:0;cursor:pointer;min-height:44px}
+.tilt-ask .go{display:flex;align-items:center;gap:8px;padding:0 6px 0 16px;text-align:left}
+.tilt-ask .x{width:44px;font-size:20px;opacity:.7}
+.tilt-ask button:focus-visible{outline:2px solid #fff;outline-offset:-4px;border-radius:999px}
+@keyframes tiltAskIn{from{opacity:0;transform:translateY(12px)}}
 /* ===================== WEBGL ВАРИАНТ ===================== */
 #gl-paper{position:fixed;inset:0;width:100%;height:100vh;height:100lvh;z-index:-1;pointer-events:none;display:block}
 html.webgl .bar{background:rgba(243,245,244,.78)}
@@ -919,6 +927,69 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
 })();
 </script>
 <script>
+/* ---------- Наклон на телефона (жироскоп) ----------
+   Публикува window.RadoTilt = { on, x, y } — наклон спрямо това как държиш телефона
+   (x: наляво/надясно, y: напред/назад, от -1 до 1) и събитие "radotilt".
+   Базата бавно се нагласява, така че ефектът реагира на промяната в наклона.
+   На iPhone браузърът иска разрешение, затова се показва малък бутон. */
+(function(){
+  'use strict';
+  var T = window.RadoTilt = { on:false, x:0, y:0 };
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var touch = window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches;
+  if (reduce || !touch || !('DeviceOrientationEvent' in window)) return;
+
+  var bx = null, by = 0, sx = 0, sy = 0, lastT = 0, RANGE = 22;
+  function angle(){
+    var a = (screen.orientation && typeof screen.orientation.angle === 'number') ? screen.orientation.angle : (window.orientation || 0);
+    return ((a % 360) + 360) % 360;
+  }
+  function onOrient(e){
+    if (e.beta == null || e.gamma == null) return;
+    var a = angle(), gx, gy;
+    if (a === 90){ gx = e.beta; gy = -e.gamma; }
+    else if (a === 270){ gx = -e.beta; gy = e.gamma; }
+    else { gx = e.gamma; gy = e.beta; }
+    var now = performance.now(), dt = lastT ? Math.min(.1, (now - lastT) / 1000) : .016; lastT = now;
+    if (bx === null){ bx = gx; by = gy; }
+    var k = Math.min(1, dt * .45);            // базата догонва за ~2 секунди
+    bx += (gx - bx) * k; by += (gy - by) * k;
+    var tx = Math.max(-1, Math.min(1, (gx - bx) / RANGE));
+    var ty = Math.max(-1, Math.min(1, (gy - by) / RANGE));
+    sx += (tx - sx) * .25; sy += (ty - sy) * .25;
+    T.x = sx; T.y = sy;
+    if (!T.on){ T.on = true; if (btn){ btn.remove(); btn = null; } }
+    window.dispatchEvent(new Event('radotilt'));
+  }
+  function listen(){ addEventListener('deviceorientation', onOrient, { passive:true }); }
+
+  var btn = null;
+  listen();                                   // Android и повечето браузъри: работи директно
+  var needsAsk = typeof DeviceOrientationEvent.requestPermission === 'function';
+  if (!needsAsk) return;
+
+  var KEY = 'rado-tilt-dismissed';
+  try { if (localStorage.getItem(KEY)) return; } catch(_){}
+  function label(){ return document.documentElement.lang === 'en' ? 'Tilt your phone — enable effect' : 'Наклони телефона — включи ефекта'; }
+  btn = document.createElement('div');
+  btn.className = 'tilt-ask';
+  btn.innerHTML = '<button type="button" class="go"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2" transform="rotate(-14 12 12)"/><path d="M3 9.5c-.8 1.7-.8 3.3 0 5M21 9.5c.8 1.7.8 3.3 0 5"/></svg><span></span></button><button type="button" class="x">×</button>';
+  var span = btn.querySelector('span'), x = btn.querySelector('.x');
+  function relabel(){ span.textContent = label(); x.setAttribute('aria-label', document.documentElement.lang === 'en' ? 'Close' : 'Затвори'); }
+  relabel();
+  new MutationObserver(relabel).observe(document.documentElement, { attributes:true, attributeFilter:['lang'] });
+  x.addEventListener('click', function(){ try { localStorage.setItem(KEY, '1'); } catch(_){} btn.remove(); });
+  btn.querySelector('.go').addEventListener('click', function(){
+    DeviceOrientationEvent.requestPermission().then(function(r){
+      if (r !== 'granted') { try { localStorage.setItem(KEY, '1'); } catch(_){} }
+      btn.remove();
+    }).catch(function(){ btn.remove(); });
+  });
+  // бутонът е нужен само ако няма данни без разрешение (iPhone)
+  setTimeout(function(){ if (!T.on && btn) document.body.appendChild(btn); }, 1800);
+})();
+</script>
+<script>
 /* ---------- WebGL: жива хартия за чертеж + следа от червения химикал ----------
    • Мрежата си остава в CSS, за да се превърта гладко заедно със страницата.
    • WebGL е прозрачен слой отгоре: едва видими контури като траектории на CNC
@@ -946,7 +1017,7 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
   deriv ? '#extension GL_OES_standard_derivatives : enable\n#define HAS_D 1' : '',
   'precision highp float;',
   'uniform vec2 uRes; uniform float uDpr; uniform float uTime; uniform float uScroll;',
-  'uniform vec2 uMouse; uniform vec2 uLight; uniform float uCross; uniform float uLens; uniform float uPen; uniform float uLife;',
+  'uniform vec2 uMouse; uniform vec2 uLight; uniform float uCross; uniform float uR; uniform vec3 uSq; uniform vec2 uLdir; uniform float uLens; uniform float uPen; uniform float uLife;',
   'uniform int uCount; uniform vec4 uPts[' + MAXP + '];',
   'const vec3 PAPER = vec3(.953,.961,.957);',
   'const vec3 MACHINE = vec3(.267,.345,.478);',
@@ -988,8 +1059,12 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
   '#endif',
   // изпъкване: под показалеца хартията се издува като купол — мрежата се разтяга
   // в средата и се слива с истинската мрежа по ръба
-  '  vec2 dm = v - uMouse; float rr = length(dm);',
-  '  float R = 150.;',
+  '  vec2 dm = v - uMouse;',
+  // при движение куполът се разтяга по посоката (като капка), а напряко се стеснява
+  '  float sa = dot(dm, uSq.xy);',
+  '  vec2 dq = uSq.xy * (sa / uSq.z) + (dm - uSq.xy * sa) * sqrt(uSq.z);',
+  '  float rr = length(dq);',
+  '  float R = uR;',
   '  if (uLens > .01 && rr < R + 26.){',
   '    float f = min(rr / R, 1.);',
   '    float inside = 1. - smoothstep(R - 2., R, rr);',
@@ -998,8 +1073,8 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
   '    o = over(o, MACHINE, inside * gridLine(g, 24., 1., px) * .05);',
   '    o = over(o, MACHINE, inside * gridLine(g, 120., 1., px) * .09);',
   // осветяване на купола: светло горе-ляво, сянка долу-дясно, отблясък
-  '    vec3 dn = normalize(vec3(dm / R * 1.15, sqrt(max(1. - f*f, 0.)) + .05));',
-  '    vec3 Ld = normalize(vec3(-.45, -.6, .66));',
+  '    vec3 dn = normalize(vec3(dq / R * 1.15, sqrt(max(1. - f*f, 0.)) + .05));',
+  '    vec3 Ld = normalize(vec3(uLdir, .66));',
   '    float ds = (dot(dn, Ld) - Ld.z) * uLens;',
   '    o = over(o, vec3(1.), inside * clamp(ds*.9, 0., .55));',
   '    o = over(o, MACHINE, inside * clamp(-ds*.45, 0., .22));',
@@ -1041,7 +1116,7 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
   var loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  var U = {}; ['uRes','uDpr','uTime','uScroll','uMouse','uLight','uCross','uLens','uPen','uLife','uCount','uPts'].forEach(function(n){ U[n] = gl.getUniformLocation(pr, n); });
+  var U = {}; ['uRes','uDpr','uTime','uScroll','uMouse','uLight','uCross','uR','uSq','uLdir','uLens','uPen','uLife','uCount','uPts'].forEach(function(n){ U[n] = gl.getUniformLocation(pr, n); });
   gl.clearColor(0, 0, 0, 0);
   root.classList.add('webgl');
 
@@ -1078,11 +1153,38 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
   document.addEventListener('mouseleave', function(){ lensTarget = 0; kick(); });
   // докосване: куполът се издува под пръста (без мастило — то е за мишката и автопилота)
   var touching = false, lightX = -999, lightY = -999;
-  function onTouch(e){ var tt = e.touches && e.touches[0]; if (!tt) return; touching = true; mouse.x = tt.clientX; mouse.y = tt.clientY; lensTarget = 1; force = true; kick(); }
+  function onTouch(e){
+    var tt = e.touches && e.touches[0]; if (!tt) return;
+    var t = now(), dt = Math.max(.008, t - lastTouchT);
+    if (touching && e.type === 'touchmove'){ mb.vx = (tt.clientX - mouse.x) / dt; mb.vy = (tt.clientY - mouse.y) / dt; } else { mb.vx = mb.vy = 0; }
+    lastTouchT = t; touching = true; mouse.x = tt.clientX; mouse.y = tt.clientY; lensTarget = 1; force = true; kick();
+  }
   addEventListener('touchstart', onTouch, { passive:true });
   addEventListener('touchmove', onTouch, { passive:true });
-  addEventListener('touchend', function(e){ if (!e.touches || !e.touches.length){ lensTarget = 0; kick(); } }, { passive:true });
-  addEventListener('touchcancel', function(){ lensTarget = 0; kick(); }, { passive:true });
+  addEventListener('touchend', function(e){ if (!e.touches || !e.touches.length){ touching = false; if (!marbleOn()) lensTarget = 0; kick(); } }, { passive:true });
+  addEventListener('touchcancel', function(){ touching = false; if (!marbleOn()) lensTarget = 0; kick(); }, { passive:true });
+
+  /* ---- топче: при наклон на телефона куполът се търкаля като топче под хартията ---- */
+  var mb = { vx:0, vy:0 }, lastTouchT = 0, lastStep = 0;
+  function marbleOn(){ return !finePointer && window.RadoTilt && window.RadoTilt.on; }
+  addEventListener('radotilt', function(){ if (marbleOn()){ if (mouse.x < -900){ mouse.x = cv.clientWidth * .7; mouse.y = cv.clientHeight * .45; } kick(); } });
+  function stepMarble(t){
+    var dt = Math.min(.05, lastStep ? t - lastStep : .016); lastStep = t;
+    if (!marbleOn()) return 0;
+    var T = window.RadoTilt, R = 95, vw = cv.clientWidth, vh = cv.clientHeight;
+    lensTarget = (t - lastScroll < .35) ? 0 : 1;          // при скрол топчето потъва
+    if (!touching){
+      mb.vx += T.x * 2600 * dt; mb.vy += T.y * 2600 * dt;
+      var fr = Math.exp(-1.7 * dt); mb.vx *= fr; mb.vy *= fr;
+      mouse.x += mb.vx * dt; mouse.y += mb.vy * dt;
+      var m = R * .55;
+      if (mouse.x < m){ mouse.x = m; mb.vx = Math.abs(mb.vx) * .55; }
+      if (mouse.x > vw - m){ mouse.x = vw - m; mb.vx = -Math.abs(mb.vx) * .55; }
+      if (mouse.y < m + 60){ mouse.y = m + 60; mb.vy = Math.abs(mb.vy) * .55; }
+      if (mouse.y > vh - m){ mouse.y = vh - m; mb.vy = -Math.abs(mb.vy) * .55; }
+    }
+    return Math.sqrt(mb.vx * mb.vx + mb.vy * mb.vy);
+  }
   addEventListener('scroll', function(){ lastScroll = now(); if (lens > .01 || pts.length) kick(); }, { passive:true });
 
   /* ---- автопилот: химикалът сам „проверява“ ---- */
@@ -1132,10 +1234,12 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
     autopilot(t);
     while (queue.length && queue[0].t <= t){ var q = queue.shift(); addPt(q.x, q.y, q.s, q.t); }
     while (pts.length && t - pts[0].t > LIFE) pts.shift();
+    var speed = stepMarble(t);
     lens += (lensTarget - lens) * (reduce ? 1 : .15);
     var penT = penOn() ? 1 : 0;
     pen += (penT - pen) * (reduce ? 1 : .15);
-    var active = pts.length > 0 || queue.length > 0 || lens > .01 || Math.abs(lens - lensTarget) > .01 || Math.abs(pen - penT) > .01;
+    var active = pts.length > 0 || queue.length > 0 || Math.abs(lens - lensTarget) > .01 || Math.abs(pen - penT) > .01
+      || (lens > .01 && (t - lastHuman < .6 || touching || speed > 4 || Math.abs(lightX - mouse.x) + Math.abs(lightY - mouse.y) > 2));
     var scrolling = t - lastScroll < .25;
     var interval = active ? 0 : (scrolling ? 1e9 : 1 / 12);   // по време на скрол без мастило не рисуваме
     if (force || reduce || t - lastDraw >= interval){
@@ -1152,7 +1256,14 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
       var ox = vw * .5 + Math.cos(lt) * vw * .45, oy = vh * .4 + Math.sin(lt) * vh * .35;
       lightX += ((lens > .05 ? mouse.x : ox) - lightX) * .2; lightY += ((lens > .05 ? mouse.y : oy) - lightY) * .2;
       gl.uniform2f(U.uLight, lightX, lightY);
-      gl.uniform1f(U.uCross, touching ? 0 : 1);
+      gl.uniform1f(U.uCross, (touching || marbleOn()) ? 0 : 1);
+      gl.uniform1f(U.uR, finePointer ? 150 : 95);
+      // разтягане според скоростта на топчето
+      var sp = Math.sqrt(mb.vx * mb.vx + mb.vy * mb.vy), st = marbleOn() ? 1 + Math.min(sp / 1600, .45) : 1;
+      gl.uniform3f(U.uSq, sp > 1 ? mb.vx / sp : 1, sp > 1 ? mb.vy / sp : 0, st);
+      // светлината идва „от света“: при наклон на телефона се мести
+      var TT = window.RadoTilt || { x:0, y:0 };
+      gl.uniform2f(U.uLdir, -.45 - TT.x * .7, -.6 - TT.y * .7);
       gl.uniform1f(U.uLens, lens); gl.uniform1f(U.uPen, pen); gl.uniform1f(U.uLife, LIFE);
       gl.uniform1i(U.uCount, c); gl.uniform4fv(U.uPts, buf);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -1170,7 +1281,8 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
 /* ---------- 3D карти: изпъкват към посетителя ----------
    • С мишка: картата се накланя към показалеца, повдига се, заглавието излиза
      напред, а по нея минава отблясък.
-   • На телефон: картите леко се превъртат като барабан, докато минават през екрана.
+   • На телефон: картите леко се превъртат като барабан, докато минават през екрана,
+     и се накланят заедно с телефона (жироскоп).
    • При prefers-reduced-motion нищо не се движи. */
 (function(){
   'use strict';
@@ -1241,12 +1353,15 @@ html.webgl .p:hover{background:rgba(255,255,255,.82)}
     vis.forEach(function(c, i){
       var r = rects[i];
       var k = Math.max(-1, Math.min(1, ((r.top + r.height / 2) - vh / 2) / vh)); // -1 горе … 1 долу
-      set(c, -k * 5, 0, 50, 50 + k * 70);
+      var T = window.RadoTilt || { x:0, y:0 };
+      // наклонът на телефона завърта картата и мести отблясъка
+      set(c, -k * 5 - T.y * 9, T.x * 12, 50 - T.x * 60, 50 + k * 70 - T.y * 60);
     });
   }
   function queue(){ if (!pending){ pending = true; requestAnimationFrame(update); } }
   addEventListener('scroll', queue, { passive: true });
   addEventListener('resize', queue);
+  addEventListener('radotilt', queue);
 })();
 </script>
 </body>
